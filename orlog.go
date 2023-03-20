@@ -6,42 +6,40 @@ import "strings"
 import "strconv"
 import "math/rand"
 
-func print_dices(dices [6]Dice) {
+func printDices(dices [6]Dice) {
 	for dice_nb, dice := range dices {
-		fmt.Println("Dice number", 1 + dice_nb, dice.Face())
+		fmt.Print(1+dice_nb, dice.Face().String())
 	}
-}
-
-func roll_dices(dices *[6]Dice) {06:49 PM
-	for idx, _ := range dices {
-		if dices[idx].kept == false {
-			dices[idx].Roll()
-		}
-		dices[idx].kept = false
-	}
-	print_dices(*dices)
+	fmt.Print("\n")
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	dices := Init()
 
-	roll_dices(&dices)
+	players := InitPlayers()
+
 	for i := 0; i < 3; i++ {
-		input := ""
-		fmt.Scanln(&input)
+		for player_idx, _ := range players {
+			fmt.Println("Turn", i+1, players[player_idx].name)
+			players[player_idx].RollDices()
+			printDices(players[player_idx].dices)
 
-		to_keep := strings.Split(input, ",")
+			// We dont reroll on the last turn
+			if i < 2 {
+				input := ""
+				fmt.Scanln(&input)
 
-		for _, dice_nb := range to_keep {
-			i, err := strconv.ParseInt(dice_nb, 10, 32)
-			if err != nil {
-				continue
+				to_keep := strings.Split(input, ",")
+
+				for _, dice_nb := range to_keep {
+					i, err := strconv.ParseInt(dice_nb, 10, 32)
+					if err != nil {
+						continue
+					}
+					players[player_idx].dices[i-1].kept = true
+				}
 			}
-			dices[i - 1].kept = true
 		}
-
-		roll_dices(&dices)
 	}
 
 }
