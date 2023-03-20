@@ -1,5 +1,7 @@
 package main
 
+import "math/rand"
+
 const (
 	Shield = "shield"
 	Helmet = "helmet"
@@ -15,7 +17,16 @@ type Face struct {
 
 type Dice struct {
 	faces [6]Face
+	current_face int
 	kept bool
+}
+
+func (d *Dice) Face() Face {
+	return d.faces[d.current_face]
+}
+
+func (d *Dice) Roll() {
+	d.current_face = rand.Intn(6)
 }
 
 func Init() [6]Dice {
@@ -31,6 +42,7 @@ func Init() [6]Dice {
 				Face{kind: Helmet, magic: false},
 				Face{kind: Thief, magic: true},
 			},
+			current_face: 0,
 			kept: false,
 		},
 		Dice{
@@ -42,6 +54,7 @@ func Init() [6]Dice {
 				Face{kind: Thief, magic: true},
 				Face{kind: Helmet, magic: false},
 			},
+			current_face: 0,
 			kept: false,
 		},
 		Dice{
@@ -53,6 +66,7 @@ func Init() [6]Dice {
 				Face{kind: Helmet, magic: true},
 				Face{kind: Shield, magic: false},
 			},
+			current_face: 0,
 			kept: false,
 		},
 		Dice{
@@ -64,6 +78,7 @@ func Init() [6]Dice {
 				Face{kind: Helmet, magic: true},
 				Face{kind: Axe, magic: false},
 			},
+			current_face: 0,
 			kept: false,
 		},
 		Dice{
@@ -75,6 +90,7 @@ func Init() [6]Dice {
 				Face{kind: Helmet, magic: false},
 				Face{kind: Arrow, magic: true},
 			},
+			current_face: 0,
 			kept: false,
 		},
 		Dice{
@@ -86,6 +102,7 @@ func Init() [6]Dice {
 				Face{kind: Arrow, magic: false},
 				Face{kind: Helmet, magic: true},
 			},
+			current_face: 0,
 			kept: false,
 		},
 	}
