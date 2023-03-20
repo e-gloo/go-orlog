@@ -38,7 +38,7 @@ func (g *Game) PlayTurn(turn int) {
 }
 
 func (g *Game) PlayRound() {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 3; i++ {
 		g.PlayTurn(i + 1)
 	}
     g.players[0].AttackPlayer(&g.players[1])
