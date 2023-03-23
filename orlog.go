@@ -4,9 +4,9 @@ import "fmt"
 import "time"
 import "math/rand"
 
-func printDices(dices [6]Dice) {
-	for dice_nb, dice := range dices {
-		fmt.Print(1+dice_nb, dice.Face().String())
+func printDices(dices [6]Die) {
+	for dice_nb, die := range dices {
+		fmt.Print(1+dice_nb, die.Face().String())
 	}
 	fmt.Print("\n")
 }

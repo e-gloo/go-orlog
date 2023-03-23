@@ -15,7 +15,7 @@ type Face struct {
 	magic bool
 }
 
-type Dice struct {
+type Die struct {
 	faces        [6]Face
 	current_face int
 	kept         bool
@@ -28,18 +28,18 @@ func (f *Face) String() string {
 	return f.kind + " \t"
 }
 
-func (d *Dice) Face() *Face {
+func (d *Die) Face() *Face {
 	return &d.faces[d.current_face]
 }
 
-func (d *Dice) Roll() {
+func (d *Die) Roll() {
 	d.current_face = rand.Intn(6)
 }
 
-func InitDices() [6]Dice {
+func InitDices() [6]Die {
 	// Based on https://boardgamegeek.com/thread/2541060/orlog-ac-valhalla-dice
 	// https://cf.geekdo-images.com/0J1WjiWz1jpny63yiVQwKA__original/img/OXm6A6qUuSZ_x3vZVCH-xWvEtXM=/0x0/filters:format(png)/pic5791191.png
-	return [6]Dice{
+	return [6]Die{
 		{
 			faces: [6]Face{
 				{kind: Axe, magic: false},

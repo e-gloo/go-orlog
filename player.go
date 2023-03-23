@@ -6,7 +6,7 @@ type Player struct {
 	name     string
 	health   int
 	token    int
-	dices    [6]Dice
+	dices    [6]Die
 	position int
 	// gods []God
 }
@@ -23,22 +23,22 @@ func (p *Player) RollDices() {
 func (p *Player) AttackPlayer(player *Player) {
 	nbArrows := 0
 	nbAxes := 0
-	for _, dice := range p.dices {
-		if dice.Face().kind == Arrow {
+	for _, die := range p.dices {
+		if die.Face().kind == Arrow {
 			nbArrows++
 		}
-		if dice.Face().kind == Axe {
+		if die.Face().kind == Axe {
 			nbAxes++
 		}
 	}
 
 	nbHelmets := 0
 	nbShields := 0
-	for _, dice := range player.dices {
-		if dice.Face().kind == Helmet {
+	for _, die := range player.dices {
+		if die.Face().kind == Helmet {
 			nbHelmets++
 		}
-		if dice.Face().kind == Shield {
+		if die.Face().kind == Shield {
 			nbShields++
 		}
 	}
@@ -51,8 +51,8 @@ func (p *Player) AttackPlayer(player *Player) {
 func (p *Player) GainTokens() {
 	nbMagics := 0
 
-	for _, dice := range p.dices {
-		if dice.Face().magic == true {
+	for _, die := range p.dices {
+		if die.Face().magic == true {
 			nbMagics++
 		}
 	}
@@ -63,8 +63,8 @@ func (p *Player) GainTokens() {
 func (p *Player) StealTokens(player *Player) {
 	nbThieves := 0
 
-	for _, dice := range p.dices {
-		if dice.Face().kind == Thief {
+	for _, die := range p.dices {
+		if die.Face().kind == Thief {
 			nbThieves++
 		}
 	}
@@ -87,6 +87,7 @@ func InitPlayer() *Player {
 	fmt.Scanln(&player.name)
 
 	// TODO: Choose gods
+    // https://www.thegamer.com/assassins-creed-valhalla-orlog-god-favors/
 
 	return player
 }
