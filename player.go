@@ -16,6 +16,11 @@ func (p *Player) RollDices() {
 		if p.dices[idx].kept == false {
 			p.dices[idx].Roll()
 		}
+	}
+}
+
+func (p *Player) UnkeepDices() {
+	for idx, _ := range p.dices {
 		p.dices[idx].kept = false
 	}
 }
@@ -77,7 +82,7 @@ func (p *Player) StealTokens(player *Player) {
 func InitPlayer() *Player {
 	player := &Player{
 		name:     "Player",
-		health:   2,
+		health:   15,
 		token:    0,
 		dices:    InitDices(),
 		position: 1,

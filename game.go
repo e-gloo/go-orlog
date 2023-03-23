@@ -61,6 +61,9 @@ func (g *Game) PlayRound() {
 
 	fmt.Printf("%s: %dHP, %dTK\n", g.player1.name, g.player1.health, g.player1.token)
 	fmt.Printf("%s: %dHP, %dTK\n", g.player2.name, g.player2.health, g.player2.token)
+
+	g.player1.UnkeepDices()
+	g.player2.UnkeepDices()
 }
 
 func (g *Game) changePlayersPosition() {
