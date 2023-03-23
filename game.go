@@ -3,20 +3,21 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
 )
 
 type Game struct {
-	players [2]Player
+	player1 *Player
+	player2 *Player
 }
 
 func (g *Game) PlayTurn(turn int) {
-	for player_idx, _ := range g.players {
-		fmt.Println("Turn", turn, g.players[player_idx].name)
-		g.players[player_idx].RollDices()
-		printDices(g.players[player_idx].dices)
+	players := [2]*Player{g.player1, g.player2}
+	for player_idx, _ := range players {
+		fmt.Println("Turn", turn, players[player_idx].name)
+		players[player_idx].RollDices()
+		printDices(players[player_idx].dices)
 
 		// We dont pick the dices
 		if turn > 2 {
@@ -32,7 +33,7 @@ func (g *Game) PlayTurn(turn int) {
 			if err != nil {
 				continue
 			}
-			g.players[player_idx].dices[i-1].kept = true
+			players[player_idx].dices[i-1].kept = true
 		}
 	}
 }
@@ -41,43 +42,47 @@ func (g *Game) PlayRound() {
 	for i := 0; i < 3; i++ {
 		g.PlayTurn(i + 1)
 	}
-    g.players[0].AttackPlayer(&g.players[1])
-    g.players[1].AttackPlayer(&g.players[0])
+	// ask if should use god
+
+	// gain tokens
+	g.player1.GainTokens()
+	g.player2.GainTokens()
+
+	// damage phase
+	g.player1.AttackPlayer(g.player2)
+	if (g.player2.health <= 0) {
+		return
+	}
+	g.player2.AttackPlayer(g.player1)
+
+	// thief phase
+	g.player1.StealTokens(g.player2)
+	g.player2.StealTokens(g.player1)
+
+	fmt.Printf("%s: %dHP, %dTK\n", g.player1.name, g.player1.health, g.player1.token)
+	fmt.Printf("%s: %dHP, %dTK\n", g.player2.name, g.player2.health, g.player2.token)
 }
 
 func (g *Game) changePlayersPosition() {
-	for idx := range g.players {
-		if g.players[idx].position == 1 {
-			g.players[idx].position = 2
-		} else {
-			g.players[idx].position = 1
-		}
-	}
-	sort.Slice(g.players[:], func(i, j int) bool {
-		return g.players[i].position < g.players[j].position
-	})
+	tmp := g.player1
+	g.player1 = g.player2
+	g.player2 = tmp
 }
 
 func (g *Game) selectFirstPlayer() {
 	firstPlayer := rand.Intn(2)
-	for idx := range g.players {
-		if idx == firstPlayer {
-			g.players[idx].position = 1
-		} else {
-			g.players[idx].position = 2
-		}
+	if firstPlayer == 1 {
+		g.changePlayersPosition()
 	}
-	sort.Slice(g.players[:], func(i, j int) bool {
-		return g.players[i].position < g.players[j].position
-	})
-
 }
 
 func InitGame() *Game {
 	game := &Game{
-		players: InitPlayers(),
+		player1: InitPlayer(),
+		player2: InitPlayer(),
 	}
 	game.selectFirstPlayer()
+
 	return game
 }
 
@@ -85,10 +90,12 @@ func (g *Game) Play() {
 gameLoop:
 	for {
 		g.PlayRound()
-		for idx := range g.players {
-			if g.players[idx].health == 0 {
-				break gameLoop
-			}
+		if g.player2.health <= 0 {
+			// P1 won
+			break gameLoop
+		} else if g.player1.health <= 0 {
+			// P2 won
+			break gameLoop
 		}
 		g.changePlayersPosition()
 	}
