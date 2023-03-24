@@ -30,10 +30,18 @@ func initPlayer() *commons.Player {
 func StartGame(c *websocket.Conn) error {
 	player := initPlayer()
 
-	reqBodyBytes := new(bytes.Buffer)
-	json.NewEncoder(reqBodyBytes).Encode(player)
+	playerBuffer := new(bytes.Buffer)
+	json.NewEncoder(playerBuffer).Encode(player)
 
-	err := c.WriteMessage(websocket.TextMessage, reqBodyBytes.Bytes())
+    packet := &commons.Packet{
+        Command: commons.Create,
+        Data: playerBuffer.Bytes(),
+    }
+
+    packetBuffer := new(bytes.Buffer)
+    json.NewEncoder(packetBuffer).Encode(packet)
+
+	err := c.WriteMessage(websocket.TextMessage, packetBuffer.Bytes())
 	if err != nil {
 		fmt.Println("write:", err)
 		return err

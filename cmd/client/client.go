@@ -7,9 +7,11 @@ import (
 	"os"
 	"os/signal"
 	"time"
+    "encoding/json"
 
 	"github.com/gorilla/websocket"
     "github.com/e-gloo/orlog/orlog/client"
+    "github.com/e-gloo/orlog/orlog/commons"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
@@ -21,28 +23,32 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/connect"}
 	log.Printf("connecting to %s", u.String())
 
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
-	defer c.Close()
+	defer conn.Close()
 
-    client.StartGame(c)
+    client.StartGame(conn)
 
 	done := make(chan struct{})
 
 	go func() {
 		defer close(done)
 		for {
-			_, message, err := c.ReadMessage()
+			_, message, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("read:", err)
 				return
 			}
 			log.Printf("recv: %s", message)
+            packet := &commons.Packet{}
+            json.Unmarshal(message, packet)
+			log.Printf("packet: %s", packet)
+
 		}
 	}()
 
@@ -55,7 +61,7 @@ func main() {
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
 				log.Println("write close:", err)
 				return

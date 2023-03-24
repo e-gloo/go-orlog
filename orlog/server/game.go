@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-    "github.com/e-gloo/orlog/orlog/commons"
+	"github.com/e-gloo/orlog/orlog/commons"
+	"github.com/google/uuid"
 )
 
 type Game struct {
+	uuid    string
 	player1 *commons.Player
 	player2 *commons.Player
 }
@@ -81,25 +83,20 @@ func (g *Game) selectFirstPlayer() {
 	}
 }
 
-func InitGame() *Game {
+func InitGame(player *commons.Player) (*Game, error) {
+	newuuid, err := uuid.NewUUID()
+	if err != nil {
+		fmt.Println("Error at generating uuid", err)
+		return nil, err
+	}
 	game := &Game{
+		uuid:    newuuid.String(),
+		player1: player,
 	}
 	//game.selectFirstPlayer()
 
-	return game
+	return game, nil
 }
 
 func (g *Game) Play() {
-gameLoop:
-	for {
-		g.PlayRound()
-		if g.player2.Health <= 0 {
-			// P1 won
-			break gameLoop
-		} else if g.player1.Health <= 0 {
-			// P2 won
-			break gameLoop
-		}
-		g.changePlayersPosition()
-	}
 }

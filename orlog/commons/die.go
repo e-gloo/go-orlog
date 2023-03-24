@@ -16,9 +16,9 @@ type Face struct {
 }
 
 type Die struct {
-	Faces        [6]Face
-	Current_face int
-	Kept         bool
+	Faces        [6]Face `json:"faces"`
+	Current_face int     `json:"current_faces"`
+	Kept         bool    `json:"kept"`
 }
 
 func (f *Face) String() string {
