@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
-	"strings"
 )
 
 type Game struct {
@@ -26,14 +24,16 @@ func (g *Game) PlayTurn(turn int) {
 		input := ""
 		fmt.Scanln(&input)
 
-		to_keep := strings.Split(input, ",")
+		if input == "*" {
+			input = "1,2,3,4,5,6"
+		}
+		to_keep, err := StringToIntArray(input)
+		if err != nil {
+			continue
+		}
 
 		for _, dice_nb := range to_keep {
-			i, err := strconv.ParseInt(dice_nb, 10, 32)
-			if err != nil {
-				continue
-			}
-			players[player_idx].dices[i-1].kept = true
+			players[player_idx].dices[dice_nb-1].kept = true
 		}
 	}
 }
@@ -43,27 +43,50 @@ func (g *Game) PlayRound() {
 		g.PlayTurn(i + 1)
 	}
 	// ask if should use god
+	p1god, p1godLevel := g.player1.AskForGod()
+	p2god, p2godLevel := g.player2.AskForGod()
+
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 1)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 1)
+
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 2)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 2)
 
 	// gain tokens
 	g.player1.GainTokens()
 	g.player2.GainTokens()
 
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 3)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 3)
+
 	// damage phase
 	g.player1.AttackPlayer(g.player2)
-	if (g.player2.health <= 0) {
+	if g.player2.health <= 0 {
 		return
 	}
 	g.player2.AttackPlayer(g.player1)
+
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 4)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 5)
 
 	// thief phase
 	g.player1.StealTokens(g.player2)
 	g.player2.StealTokens(g.player1)
 
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 5)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 5)
+
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 6)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 6)
+
+	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 7)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 7)
+
 	fmt.Printf("%s: %dHP, %dTK\n", g.player1.name, g.player1.health, g.player1.token)
 	fmt.Printf("%s: %dHP, %dTK\n", g.player2.name, g.player2.health, g.player2.token)
 
-	g.player1.UnkeepDices()
-	g.player2.UnkeepDices()
+	g.player1.ResetDices()
+	g.player2.ResetDices()
 }
 
 func (g *Game) changePlayersPosition() {
@@ -80,9 +103,10 @@ func (g *Game) selectFirstPlayer() {
 }
 
 func InitGame() *Game {
+	gods := InitGods()
 	game := &Game{
-		player1: InitPlayer(),
-		player2: InitPlayer(),
+		player1: InitPlayer(gods),
+		player2: InitPlayer(gods),
 	}
 	game.selectFirstPlayer()
 

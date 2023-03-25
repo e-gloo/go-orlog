@@ -1,6 +1,9 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+	"strconv"
+)
 
 const (
 	Shield = "🛡"
@@ -11,8 +14,9 @@ const (
 )
 
 type Face struct {
-	kind  string
-	magic bool
+	kind     string
+	magic    bool
+	quantity int
 }
 
 type Die struct {
@@ -22,10 +26,23 @@ type Die struct {
 }
 
 func (f *Face) String() string {
-	// if f.magic {
-	// 	return f.kind + "🔮\t"
-	// }
-	return f.kind + " \t"
+	var res = ""
+
+	if f.quantity != 1 {
+		res += strconv.Itoa(f.quantity)
+	} else {
+		res += " "
+	}
+
+	res += f.kind
+
+	if f.magic {
+		res += "🔮"
+	} else {
+		res += " "
+	}
+
+	return res + " \t"
 }
 
 func (d *Die) Face() *Face {
@@ -36,78 +53,88 @@ func (d *Die) Roll() {
 	d.current_face = rand.Intn(6)
 }
 
+func AssertFaces(dices [6]Die, assert func(f *Face) bool) int {
+	count := 0
+	for _, die := range dices {
+		if assert(die.Face()) {
+			count += die.Face().quantity
+		}
+	}
+	return count
+}
+
 func InitDices() [6]Die {
 	// Based on https://boardgamegeek.com/thread/2541060/orlog-ac-valhalla-dice
 	// https://cf.geekdo-images.com/0J1WjiWz1jpny63yiVQwKA__original/img/OXm6A6qUuSZ_x3vZVCH-xWvEtXM=/0x0/filters:format(png)/pic5791191.png
 	return [6]Die{
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Shield, magic: false},
-				{kind: Arrow, magic: true},
-				{kind: Axe, magic: false},
-				{kind: Helmet, magic: false},
-				{kind: Thief, magic: true},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Shield, magic: false, quantity: 1},
+				{kind: Arrow, magic: true, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Helmet, magic: false, quantity: 1},
+				{kind: Thief, magic: true, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
 		},
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Shield, magic: true},
-				{kind: Arrow, magic: false},
-				{kind: Axe, magic: false},
-				{kind: Thief, magic: true},
-				{kind: Helmet, magic: false},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Shield, magic: true, quantity: 1},
+				{kind: Arrow, magic: false, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Thief, magic: true, quantity: 1},
+				{kind: Helmet, magic: false, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
 		},
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Arrow, magic: true},
-				{kind: Thief, magic: false},
-				{kind: Axe, magic: false},
-				{kind: Helmet, magic: true},
-				{kind: Shield, magic: false},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Arrow, magic: true, quantity: 1},
+				{kind: Thief, magic: false, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Helmet, magic: true, quantity: 1},
+				{kind: Shield, magic: false, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
 		},
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Shield, magic: false},
-				{kind: Thief, magic: true},
-				{kind: Arrow, magic: false},
-				{kind: Helmet, magic: true},
-				{kind: Axe, magic: false},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Shield, magic: false, quantity: 1},
+				{kind: Thief, magic: true, quantity: 1},
+				{kind: Arrow, magic: false, quantity: 1},
+				{kind: Helmet, magic: true, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
 		},
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Shield, magic: true},
-				{kind: Thief, magic: false},
-				{kind: Axe, magic: false},
-				{kind: Helmet, magic: false},
-				{kind: Arrow, magic: true},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Shield, magic: true, quantity: 1},
+				{kind: Thief, magic: false, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Helmet, magic: false, quantity: 1},
+				{kind: Arrow, magic: true, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
 		},
 		{
 			faces: [6]Face{
-				{kind: Axe, magic: false},
-				{kind: Shield, magic: true},
-				{kind: Thief, magic: false},
-				{kind: Axe, magic: false},
-				{kind: Arrow, magic: false},
-				{kind: Helmet, magic: true},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Shield, magic: true, quantity: 1},
+				{kind: Thief, magic: false, quantity: 1},
+				{kind: Axe, magic: false, quantity: 1},
+				{kind: Arrow, magic: false, quantity: 1},
+				{kind: Helmet, magic: true, quantity: 1},
 			},
 			current_face: 0,
 			kept:         false,
