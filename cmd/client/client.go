@@ -15,6 +15,7 @@ import (
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
+var join = flag.String("join", "", "uuid of the game to join")
 
 func main() {
 	flag.Parse()
@@ -32,7 +33,7 @@ func main() {
 	}
 	defer conn.Close()
 
-    client.StartGame(conn)
+    client.StartGame(conn, *join)
 
 	done := make(chan struct{})
 

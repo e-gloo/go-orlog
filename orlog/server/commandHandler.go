@@ -6,28 +6,38 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/e-gloo/orlog/orlog/commons"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
-var games = make(map[string]*Game)
+var games = sync.Map{}
+
+type gameManager struct {
+	game        *Game
+	player1Conn *websocket.Conn
+	player2Conn *websocket.Conn
+}
 
 func commandHandler(conn *websocket.Conn, packet *commons.Packet) {
 	switch packet.Command {
 	case commons.Create:
 		log.Printf("Creating new game")
-		player := &commons.Player{}
-		json.Unmarshal(packet.Data, player)
+		createData := &commons.CreateData{}
+		json.Unmarshal(packet.Data, createData)
 
-		game, err := InitGame(player)
+		game, err := InitGame(createData.Player)
 		var response []byte
 		if err != nil {
 			log.Printf("Error creating game: %v", err)
 			response = []byte("Failed")
 		} else {
-			games[game.uuid] = game
+            manager := &gameManager{
+                game: game,
+                player1Conn: conn,
+            }
+            games.Store(game.uuid, manager)
 			response = []byte("Succeed")
 		}
 		newPacket := &commons.Packet{
@@ -36,17 +46,26 @@ func commandHandler(conn *websocket.Conn, packet *commons.Packet) {
 		}
 		newPacketBuffer := new(bytes.Buffer)
 		json.NewEncoder(newPacketBuffer).Encode(newPacket)
-		log.Printf("Game created: %v", game.player1.Name)
+		log.Printf("Game created: %s", game.uuid)
+
 		conn.WriteMessage(websocket.TextMessage, newPacketBuffer.Bytes())
 	case commons.Join:
 		log.Printf("Joining game")
-		newuuid, _ := uuid.NewUUID()
-		value, ok := games[newuuid.String()]
+		createData := &commons.CreateData{}
+		json.Unmarshal(packet.Data, createData)
+		value, ok := games.Load(createData.Uuid)
+		manager := value.(*gameManager)
 		if !ok {
 			log.Printf("Error joining game")
 		} else {
-			log.Printf("Joining success", value)
+			log.Printf("Joining success")
 		}
+		manager.game.AddPlayer(createData.Player)
+        manager.player2Conn = conn
+		log.Printf("Player added to the game")
+		log.Printf("P1 %s, P2 %s", manager.game.player1.Name, manager.game.player2.Name)
+        manager.player1Conn.WriteMessage(websocket.TextMessage, []byte("Game Starting"))
+        manager.player2Conn.WriteMessage(websocket.TextMessage, []byte("Game Starting"))
 	}
 }
 

@@ -83,6 +83,10 @@ func (g *Game) selectFirstPlayer() {
 	}
 }
 
+func (g *Game) AddPlayer(player *commons.Player) {
+    g.player2 = player
+}
+
 func InitGame(player *commons.Player) (*Game, error) {
 	newuuid, err := uuid.NewUUID()
 	if err != nil {

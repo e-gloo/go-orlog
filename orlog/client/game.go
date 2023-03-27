@@ -27,19 +27,31 @@ func initPlayer() *commons.Player {
 	return player
 }
 
-func StartGame(c *websocket.Conn) error {
+func StartGame(c *websocket.Conn, join string) error {
 	player := initPlayer()
+	createData := &commons.CreateData{
+		Uuid:   "",
+		Player: player,
+	}
 
-	playerBuffer := new(bytes.Buffer)
-	json.NewEncoder(playerBuffer).Encode(player)
+	dataBuffer := new(bytes.Buffer)
 
-    packet := &commons.Packet{
-        Command: commons.Create,
-        Data: playerBuffer.Bytes(),
-    }
+	var command string
+	if join != "" {
+		command = commons.Join
+		createData.Uuid = join
+	} else {
+		command = commons.Create
+	}
 
-    packetBuffer := new(bytes.Buffer)
-    json.NewEncoder(packetBuffer).Encode(packet)
+	json.NewEncoder(dataBuffer).Encode(createData)
+	packet := &commons.Packet{
+		Command: command,
+		Data:    dataBuffer.Bytes(),
+	}
+
+	packetBuffer := new(bytes.Buffer)
+	json.NewEncoder(packetBuffer).Encode(packet)
 
 	err := c.WriteMessage(websocket.TextMessage, packetBuffer.Bytes())
 	if err != nil {
