@@ -17,8 +17,10 @@ func (g *Game) PlayTurn(turn int) {
 		players[player_idx].RollDices()
 		printDices(players[player_idx].dices)
 
+		keptDices := AssertDices(players[player_idx].dices, func (d *Die) bool { return d.kept == true })
+
 		// We dont pick the dices
-		if turn > 2 {
+		if turn > 2 || keptDices >= 6 {
 			continue
 		}
 		input := ""
@@ -67,7 +69,7 @@ func (g *Game) PlayRound() {
 	g.player2.AttackPlayer(g.player1)
 
 	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 4)
-	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 5)
+	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 4)
 
 	// thief phase
 	g.player1.StealTokens(g.player2)
@@ -82,8 +84,8 @@ func (g *Game) PlayRound() {
 	g.player1.ActivateGod(p1god, p1godLevel, g.player2, 7)
 	g.player2.ActivateGod(p2god, p2godLevel, g.player1, 7)
 
-	fmt.Printf("%s: %dHP, %dTK\n", g.player1.name, g.player1.health, g.player1.token)
-	fmt.Printf("%s: %dHP, %dTK\n", g.player2.name, g.player2.health, g.player2.token)
+	fmt.Printf("%s: %dHP, %dTK\n", g.player1.name, g.player1.health, g.player1.tokens)
+	fmt.Printf("%s: %dHP, %dTK\n", g.player2.name, g.player2.health, g.player2.tokens)
 
 	g.player1.ResetDices()
 	g.player2.ResetDices()

@@ -28,13 +28,13 @@ type Die struct {
 func (f *Face) String() string {
 	var res = ""
 
+	res += f.kind
+
 	if f.quantity != 1 {
 		res += strconv.Itoa(f.quantity)
 	} else {
-		res += " "
+		res += ""
 	}
-
-	res += f.kind
 
 	if f.magic {
 		res += "🔮"
@@ -53,6 +53,16 @@ func (d *Die) Roll() {
 	d.current_face = rand.Intn(6)
 }
 
+func AssertDices(dices [6]Die, assert func(d *Die) bool) int {
+	count := 0
+	for _, die := range dices {
+		if assert(&die) {
+			count += 1
+		}
+	}
+	return count
+}
+
 func AssertFaces(dices [6]Die, assert func(f *Face) bool) int {
 	count := 0
 	for _, die := range dices {
@@ -61,6 +71,13 @@ func AssertFaces(dices [6]Die, assert func(f *Face) bool) int {
 		}
 	}
 	return count
+}
+
+func (d *Die) ResetDie() {
+	d.kept = false
+	for faceIdx, _ := range d.faces {
+		d.faces[faceIdx].quantity = 2
+	}
 }
 
 func InitDices() [6]Die {

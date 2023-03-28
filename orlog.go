@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 )
 
 func printDices(dices [6]Die) {
@@ -21,20 +21,20 @@ func parseArgs() (isServer bool, port int, host string) {
 	host = "localhost"
 
 	for argIdx, _ := range os.Args {
-		if (os.Args[argIdx] == "-s" || os.Args[argIdx] == "--server") {
+		if os.Args[argIdx] == "-s" || os.Args[argIdx] == "--server" {
 			isServer = true
 		}
-		if (os.Args[argIdx] == "-p" || os.Args[argIdx] == "--port") {
-			i, err := strconv.ParseInt(os.Args[argIdx + 1], 10, 64)
+		if os.Args[argIdx] == "-p" || os.Args[argIdx] == "--port" {
+			i, err := strconv.ParseInt(os.Args[argIdx+1], 10, 64)
 			if err != nil {
 				continue
 			}
 			port = int(i)
 		}
-		if (os.Args[argIdx] == "-h" || os.Args[argIdx] == "--host") {
-			host = os.Args[argIdx + 1]
+		if os.Args[argIdx] == "-h" || os.Args[argIdx] == "--host" {
+			host = os.Args[argIdx+1]
 		}
-		if (os.Args[argIdx] == "--help") {
+		if os.Args[argIdx] == "--help" {
 			fmt.Println("Usage: orlog [OPTIONS]")
 			fmt.Println("Options:")
 			fmt.Println("  -s, --server\t\tStart a server")

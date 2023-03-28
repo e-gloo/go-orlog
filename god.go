@@ -151,7 +151,15 @@ func ActivateHeimdall(self *Player, opponent *Player, god *God, level int) {
 
 func PrintGods(gods []*God) {
 	for idx, god := range gods {
-		fmt.Printf("[%d] %s: %s\n", idx, god.Name, god.Description)
+		if god != nil {
+			fmt.Printf("[%d] %s: %s\n", idx+1, god.Name, god.Description)
+		}
+	}
+}
+
+func PrintGodLevels(god *God) {
+	for idx, level := range god.Levels {
+		fmt.Printf("[%d] %d tokens: %s tokens\n", idx+1, level.TokenCost, level.Description)
 	}
 }
 

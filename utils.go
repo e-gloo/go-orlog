@@ -21,7 +21,7 @@ func Max(a, b int) int {
 
 func StringToIntArray(input string) ([]int, error) {
 	var array []int
-	for _, value := range strings.Split(input, " ") {
+	for _, value := range strings.Split(input, ",") {
 		intValue, err := strconv.Atoi(value)
 		if err != nil {
 			return nil, err

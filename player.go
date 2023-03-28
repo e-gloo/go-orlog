@@ -7,7 +7,7 @@ import (
 type Player struct {
 	name     string
 	health   int
-	token    int
+	tokens   int
 	dices    [6]Die
 	position int
 	gods     [3]*God
@@ -23,10 +23,7 @@ func (p *Player) RollDices() {
 
 func (p *Player) ResetDices() {
 	for idx, _ := range p.dices {
-		p.dices[idx].kept = false
-		for faceIdx, _ := range p.dices[idx].faces {
-			p.dices[idx].faces[faceIdx].quantity = 1
-		}
+		p.dices[idx].ResetDie()
 	}
 }
 
@@ -46,19 +43,22 @@ func (p *Player) AttackPlayer(player *Player) {
 func (p *Player) GainTokens() {
 	nbMagics := AssertFaces(p.dices, func(face *Face) bool { return face.magic == true })
 
-	p.token += nbMagics
+	p.tokens += nbMagics
 }
 
 func (p *Player) StealTokens(player *Player) {
 	nbThieves := AssertFaces(player.dices, func(face *Face) bool { return face.kind == Thief })
 
-	nbToken := Min(nbThieves, player.token)
-	p.token += nbToken
-	player.token -= nbToken
+	nbToken := Min(nbThieves, player.tokens)
+	p.tokens += nbToken
+	player.tokens -= nbToken
 }
 
 func (p *Player) AskForGod() (*God, int) {
-	// FIXME: this SegFaults
+	if p.tokens <= 0 {
+		return nil, -1
+	}
+
 	PrintGods(p.gods[:])
 	fmt.Println("Activate a god : ")
 	input := ""
@@ -73,23 +73,24 @@ func (p *Player) AskForGod() (*God, int) {
 		return nil, -1
 	}
 
+	PrintGodLevels(p.gods[choosen[0]-1])
 	fmt.Scanln(&input)
 	levels, err := StringToIntArray(input)
 	if err != nil {
 		return nil, -1
 	}
 
-	return p.gods[choosen[0]], levels[0]
+	return p.gods[choosen[0] - 1], levels[0] - 1
 }
 
 func (p *Player) ActivateGod(god *God, level int, opponent *Player, currentPriority int) bool {
-	if god == nil || level == -1 || god.Priority != currentPriority || god.Levels[level].TokenCost > p.token {
+	if god == nil || level == -1 || god.Priority != currentPriority || god.Levels[level].TokenCost > p.tokens {
 		return false
 	}
 
+	p.tokens -= god.Levels[level].TokenCost
 	fmt.Printf("%s activates %s : %s\n", p.name, god.Name, god.Levels[level].Description)
 	god.Activate(p, opponent, god, level)
-	p.token -= god.Levels[level].TokenCost
 	return true
 }
 
@@ -97,7 +98,7 @@ func InitPlayer(gods []*God) *Player {
 	player := &Player{
 		name:     "Player",
 		health:   15,
-		token:    50,
+		tokens:   50,
 		dices:    InitDices(),
 		position: 1,
 		gods:     [3]*God{nil, nil, nil},
@@ -113,12 +114,12 @@ func InitPlayer(gods []*God) *Player {
 	fmt.Scanln(&input)
 
 	choosen, err := StringToIntArray(input)
-	if err != nil || len(choosen) != 3 {
+	if err != nil {
 		return player
 	}
 
 	for idx, godIdx := range choosen[:3] {
-		player.gods[idx] = gods[godIdx]
+		player.gods[idx] = gods[godIdx-1]
 	}
 
 	return player
