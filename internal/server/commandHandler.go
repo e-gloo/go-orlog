@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/e-gloo/orlog/orlog/commons"
+	"github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
 
@@ -20,11 +20,11 @@ type gameManager struct {
 	player2Conn *websocket.Conn
 }
 
-func commandHandler(conn *websocket.Conn, packet *commons.Packet) {
+func commandHandler(conn *websocket.Conn, packet *commands.Packet) {
 	switch packet.Command {
-	case commons.Create:
+	case commands.Create:
 		log.Printf("Creating new game")
-		createData := &commons.CreateData{}
+		createData := &commands.CreateData{}
 		json.Unmarshal(packet.Data, createData)
 
 		game, err := InitGame(createData.Player)
@@ -40,8 +40,8 @@ func commandHandler(conn *websocket.Conn, packet *commons.Packet) {
             games.Store(game.uuid, manager)
 			response = []byte("Succeed")
 		}
-		newPacket := &commons.Packet{
-			Command: commons.Create,
+		newPacket := &commands.Packet{
+			Command: commands.Create,
 			Data:    response,
 		}
 		newPacketBuffer := new(bytes.Buffer)
@@ -49,9 +49,9 @@ func commandHandler(conn *websocket.Conn, packet *commons.Packet) {
 		log.Printf("Game created: %s", game.uuid)
 
 		conn.WriteMessage(websocket.TextMessage, newPacketBuffer.Bytes())
-	case commons.Join:
+	case commands.Join:
 		log.Printf("Joining game")
-		createData := &commons.CreateData{}
+		createData := &commands.CreateData{}
 		json.Unmarshal(packet.Data, createData)
 		value, ok := games.Load(createData.Uuid)
 		manager := value.(*gameManager)
@@ -83,7 +83,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		// log.Printf("recv: %s", message)
-		packet := &commons.Packet{}
+		packet := &commands.Packet{}
 		json.Unmarshal(message, packet)
 		commandHandler(conn, packet)
 

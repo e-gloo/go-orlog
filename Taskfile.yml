@@ -1,0 +1,61 @@
+version: '3'
+
+interval: 500ms
+
+silent: true
+
+tasks:
+  check-go:
+    cmds:
+      - command -v go > /dev/null 2> /dev/null || (echo "Go is not installed"; exit 1)
+
+  check-air:
+    cmds:
+      - command -v air > /dev/null 2> /dev/null || ( echo ">> Installing air" && go install github.com/air-verse/air@latest )
+
+  check-lint:
+    cmds:
+      - command -v golangci-lint > /dev/null 2> /dev/null || ( echo ">> Installing golangci-lint" && go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 )
+
+  check-all:
+    deps: [check-go, check-air, check-lint]
+
+  go-fmt:
+    deps: [check-go]
+    cmds:
+      - go fmt ./...
+
+  go-vet:
+    deps: [check-go]
+    cmds:
+      - go vet ./...
+
+  go-lint:
+    deps: [check-lint, go-fmt, go-vet]
+    cmds:
+      - golangci-lint run ./...
+
+  build-server:
+    deps: [check-go]
+    cmds:
+      - go build -o out/server -v cmd/server/main.go
+
+  run-server:
+    deps: [check-go, check-air]
+    cmds:
+      - air -c .air.toml
+
+  clean-out:
+    cmds:
+      - rm -f out/*
+
+  clean-all:
+    deps: [clean-out]
+
+  dc-dev:
+    cmds:
+      - docker compose up --watch {{.CLI_ARGS}}
+
+  dc-stop:
+    cmds:
+      - docker compose stop

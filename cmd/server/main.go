@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/e-gloo/orlog/orlog/server"
+	"github.com/e-gloo/orlog/internal/server"
 	"github.com/gorilla/websocket"
 )
 

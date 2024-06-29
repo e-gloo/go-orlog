@@ -1,8 +1,8 @@
 module github.com/e-gloo/orlog
 
-go 1.19
+go 1.22
 
 require (
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/google/uuid v1.3.0
+	github.com/gorilla/websocket v1.5.0
 )

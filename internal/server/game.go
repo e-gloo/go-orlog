@@ -6,22 +6,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/e-gloo/orlog/orlog/commons"
+	"github.com/e-gloo/orlog/internal/game"
 	"github.com/google/uuid"
 )
 
 type Game struct {
 	uuid    string
-	player1 *commons.Player
-	player2 *commons.Player
+	player1 *game.Player
+	player2 *game.Player
 }
 
 func (g *Game) PlayTurn(turn int) {
-	players := [2]*commons.Player{g.player1, g.player2}
+	players := [2]*game.Player{g.player1, g.player2}
 	for player_idx := range players {
 		fmt.Println("Turn", turn, players[player_idx].Name)
 		players[player_idx].RollDices()
-		commons.PrintDices(players[player_idx].Dices)
+		game.PrintDices(players[player_idx].Dices)
 
 		// We dont pick the dices
 		if turn > 2 {
@@ -83,11 +83,11 @@ func (g *Game) selectFirstPlayer() {
 	}
 }
 
-func (g *Game) AddPlayer(player *commons.Player) {
+func (g *Game) AddPlayer(player *game.Player) {
     g.player2 = player
 }
 
-func InitGame(player *commons.Player) (*Game, error) {
+func InitGame(player *game.Player) (*Game, error) {
 	newuuid, err := uuid.NewUUID()
 	if err != nil {
 		fmt.Println("Error at generating uuid", err)

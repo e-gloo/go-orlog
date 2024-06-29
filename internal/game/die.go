@@ -1,4 +1,4 @@
-package commons
+package game
 
 import "math/rand"
 

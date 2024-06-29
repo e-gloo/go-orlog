@@ -1,20 +1,6 @@
-package commons
+package game
 
 import "fmt"
-
-func Min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func Max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
 
 func PrintDices(dices [6]Die) {
 	for dice_nb, die := range dices {

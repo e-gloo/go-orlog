@@ -1,4 +1,8 @@
-package commons
+package commands
+
+import (
+	"github.com/e-gloo/orlog/internal/game"
+)
 
 const (
 	Create     = "create"
@@ -15,10 +19,11 @@ const (
 
 type CreateData struct {
 	Uuid   string  `json:"uuid"`
-	Player *Player `json:"player"`
+	Player *game.Player `json:"player"`
 }
 
 type Packet struct {
 	Command string `json:"command"`
 	Data    []byte `json:"data"`
 }
+

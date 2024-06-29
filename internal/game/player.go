@@ -1,4 +1,4 @@
-package commons
+package game
 
 type Player struct {
 	Name     string `json:"name"`
@@ -45,8 +45,8 @@ func (p *Player) AttackPlayer(player *Player) {
 			nbShields++
 		}
 	}
-	arrowDamage := Max(nbArrows-nbShields, 0)
-	axeDamage := Max(nbAxes-nbHelmets, 0)
+	arrowDamage := max(nbArrows-nbShields, 0)
+	axeDamage := max(nbAxes-nbHelmets, 0)
 
 	player.Health = player.Health - arrowDamage - axeDamage
 }
@@ -72,7 +72,7 @@ func (p *Player) StealTokens(player *Player) {
 		}
 	}
 
-	nbToken := Min(nbThieves, player.Token)
+	nbToken := min(nbThieves, player.Token)
 	p.Token += nbToken
 	player.Token -= nbToken
 }
