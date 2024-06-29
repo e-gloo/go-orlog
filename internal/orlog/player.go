@@ -1,4 +1,4 @@
-package game
+package orlog
 
 type Player struct {
 	Name     string `json:"name"`
@@ -9,9 +9,14 @@ type Player struct {
 	// gods []God
 }
 
+func NewPlayer(name string) *Player {
+	p := Player{Name: name}
+	return &p
+}
+
 func (p *Player) RollDices() {
 	for idx := range p.Dices {
-		if p.Dices[idx].Kept == false {
+		if !p.Dices[idx].Kept {
 			p.Dices[idx].Roll()
 		}
 	}
@@ -55,7 +60,7 @@ func (p *Player) GainTokens() {
 	nbMagics := 0
 
 	for _, die := range p.Dices {
-		if die.Face().Magic == true {
+		if die.Face().Magic {
 			nbMagics++
 		}
 	}

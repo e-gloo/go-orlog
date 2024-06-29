@@ -1,4 +1,4 @@
-package game
+package orlog
 
 import "math/rand"
 

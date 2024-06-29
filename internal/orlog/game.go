@@ -1,4 +1,4 @@
-package server
+package orlog
 
 import (
 	"fmt"
@@ -6,22 +6,21 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/e-gloo/orlog/internal/game"
 	"github.com/google/uuid"
 )
 
 type Game struct {
-	uuid    string
-	player1 *game.Player
-	player2 *game.Player
+	Uuid    string
+	Player1 *Player
+	Player2 *Player
 }
 
 func (g *Game) PlayTurn(turn int) {
-	players := [2]*game.Player{g.player1, g.player2}
+	players := [2]*Player{g.Player1, g.Player2}
 	for player_idx := range players {
 		fmt.Println("Turn", turn, players[player_idx].Name)
 		players[player_idx].RollDices()
-		game.PrintDices(players[player_idx].Dices)
+		PrintDices(players[player_idx].Dices)
 
 		// We dont pick the dices
 		if turn > 2 {
@@ -49,31 +48,31 @@ func (g *Game) PlayRound() {
 	// ask if should use god
 
 	// gain tokens
-	g.player1.GainTokens()
-	g.player2.GainTokens()
+	g.Player1.GainTokens()
+	g.Player2.GainTokens()
 
 	// damage phase
-	g.player1.AttackPlayer(g.player2)
-	if g.player2.Health <= 0 {
+	g.Player1.AttackPlayer(g.Player2)
+	if g.Player2.Health <= 0 {
 		return
 	}
-	g.player2.AttackPlayer(g.player1)
+	g.Player2.AttackPlayer(g.Player1)
 
 	// thief phase
-	g.player1.StealTokens(g.player2)
-	g.player2.StealTokens(g.player1)
+	g.Player1.StealTokens(g.Player2)
+	g.Player2.StealTokens(g.Player1)
 
-	fmt.Printf("%s: %dHP, %dTK\n", g.player1.Name, g.player1.Health, g.player1.Token)
-	fmt.Printf("%s: %dHP, %dTK\n", g.player2.Name, g.player2.Health, g.player2.Token)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Player1.Name, g.Player1.Health, g.Player1.Token)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Player2.Name, g.Player2.Health, g.Player2.Token)
 
-	g.player1.UnkeepDices()
-	g.player2.UnkeepDices()
+	g.Player1.UnkeepDices()
+	g.Player2.UnkeepDices()
 }
 
 func (g *Game) changePlayersPosition() {
-	tmp := g.player1
-	g.player1 = g.player2
-	g.player2 = tmp
+	tmp := g.Player1
+	g.Player1 = g.Player2
+	g.Player2 = tmp
 }
 
 func (g *Game) selectFirstPlayer() {
@@ -83,24 +82,27 @@ func (g *Game) selectFirstPlayer() {
 	}
 }
 
-func (g *Game) AddPlayer(player *game.Player) {
-    g.player2 = player
+func (g *Game) SetPlayer1(name string) {
+	g.Player1 = NewPlayer(name)
 }
 
-func InitGame(player *game.Player) (*Game, error) {
+func (g *Game) SetPlayer2(name string) {
+	g.Player2 = NewPlayer(name)
+}
+
+func (g *Game) IsGameReady() bool {
+	return g.Player1 != nil && g.Player2 != nil
+}
+
+func InitGame() (*Game, error) {
 	newuuid, err := uuid.NewUUID()
 	if err != nil {
 		fmt.Println("Error at generating uuid", err)
 		return nil, err
 	}
 	game := &Game{
-		uuid:    newuuid.String(),
-		player1: player,
+		Uuid: newuuid.String(),
 	}
-	//game.selectFirstPlayer()
 
 	return game, nil
-}
-
-func (g *Game) Play() {
 }

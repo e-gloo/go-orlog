@@ -1,29 +1,23 @@
 package commands
 
-import (
-	"github.com/e-gloo/orlog/internal/game"
+type Command string
+
+const (
+	CreateGame   Command = "create"
+	JoinGame     Command = "join"
+	AddPlayer    Command = "add_player"
+	ChooseGods   Command = "choose_gods"
+	GameStarting Command = "starting"
+	PlayGods     Command = "play_gods"
+	KeepDices    Command = "keep_dices"
 )
 
 const (
-	Create     = "create"
-	Join       = "join"
-	ChooseGods = "choose_gods"
-	PlayGods   = "play_gods"
-	KeepDices  = "keep_dices"
+	SelectDices    Command = "select_dices"
+	WantToPlayGods Command = "want_to_play_gods"
 )
 
 const (
-    SelectDices = "select_dices"
-    WantToPlayGods = "want_to_play_gods"
+	CommandOK    Command = "ok"
+	CommandError Command = "error"
 )
-
-type CreateData struct {
-	Uuid   string  `json:"uuid"`
-	Player *game.Player `json:"player"`
-}
-
-type Packet struct {
-	Command string `json:"command"`
-	Data    []byte `json:"data"`
-}
-
