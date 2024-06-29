@@ -14,8 +14,8 @@ import (
 var joinableGames = sync.Map{}
 
 type Packet struct {
-	Command Command
-	Data    string
+	Command Command `json:"command"`
+	Data    string  `json:"data"`
 }
 
 type gameManager struct {
