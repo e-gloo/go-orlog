@@ -10,8 +10,7 @@ type Player struct {
 }
 
 func NewPlayer(name string) *Player {
-	p := Player{Name: name}
-	return &p
+	return &Player{Name: name}
 }
 
 func (p *Player) RollDices() {

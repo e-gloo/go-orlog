@@ -40,7 +40,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	ch := &commands.CommandHandler{}
+	ch := commands.NewCommandHandler()
 	for {
 		_, message, err := conn.ReadMessage()
 		slog.Info("New message")

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 
 	og "github.com/e-gloo/orlog/internal/orlog"
@@ -25,11 +26,29 @@ type gameManager struct {
 }
 
 type CommandHandler struct {
-	Manager *gameManager
-	IsHost  bool
+	manager          *gameManager
+	isHost           bool
+	expectedCommands []Command
+}
+
+func NewCommandHandler() *CommandHandler {
+	return &CommandHandler{
+		expectedCommands: []Command{
+			CreateGame,
+			JoinGame,
+		},
+	}
 }
 
 func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *Packet) error {
+	if !slices.Contains(ch.expectedCommands, packet.Command) {
+		slog.Warn("Unexpected command", "command", packet.Command)
+		if err := SendPacket(conn, &Packet{Command: CommandError}); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+		return nil
+	}
+
 	switch packet.Command {
 	case CreateGame:
 		return ch.handleCreateGame(conn)
@@ -55,8 +74,9 @@ func (ch *CommandHandler) handleCreateGame(conn *websocket.Conn) error {
 		player1Conn: conn,
 	}
 	joinableGames.Store(game.Uuid, manager)
-	ch.IsHost = true
-	ch.Manager = manager
+	ch.isHost = true
+	ch.manager = manager
+	ch.expectedCommands = []Command{AddPlayer}
 	slog.Info("Game created", "uuid", game.Uuid)
 
 	if err := SendPacket(conn, &Packet{Command: CommandOK, Data: game.Uuid}); err != nil {
@@ -80,9 +100,14 @@ func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *Packet) e
 
 	manager := value.(*gameManager)
 	manager.player2Conn = conn
-	ch.Manager = manager
+	ch.manager = manager
+	ch.expectedCommands = []Command{AddPlayer}
 	slog.Info("Joined game", "uuid", packet.Data)
 	joinableGames.Delete(packet.Data)
+
+	if err := SendPacket(conn, &Packet{Command: CommandOK, Data: packet.Data}); err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
+	}
 
 	if err := SendPacket(conn, &Packet{Command: AddPlayer}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
@@ -91,30 +116,32 @@ func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *Packet) e
 }
 
 func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *Packet) error {
-	if ch.IsHost {
-		ch.Manager.game.SetPlayer1(packet.Data)
+	if ch.isHost {
+		ch.manager.game.SetPlayer1(packet.Data)
 		slog.Info("Player 1 added", "name", packet.Data)
 	} else {
-		ch.Manager.game.SetPlayer2(packet.Data)
+		ch.manager.game.SetPlayer2(packet.Data)
 		slog.Info("Player 2 added", "name", packet.Data)
 	}
+
+	ch.expectedCommands = []Command{}
 
 	if err := SendPacket(conn, &Packet{Command: CommandOK}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if ch.Manager.game.IsGameReady() {
+	if ch.manager.game.IsGameReady() {
 		slog.Info("Game is starting...")
-		if err := SendPacket(ch.Manager.player1Conn, &Packet{Command: GameStarting}); err != nil {
+		if err := SendPacket(ch.manager.player1Conn, &Packet{Command: GameStarting}); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
-		if err := SendPacket(ch.Manager.player2Conn, &Packet{Command: GameStarting}); err != nil {
+		if err := SendPacket(ch.manager.player2Conn, &Packet{Command: GameStarting}); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
 	} else {
-		slog.Info("Player 1 ready", "status", ch.Manager.game.Player1 != nil)
-		slog.Info("Player 2 ready", "status", ch.Manager.game.Player2 != nil)
+		slog.Debug("Player 1 ready", "status", ch.manager.game.Player1 != nil)
+		slog.Debug("Player 2 ready", "status", ch.manager.game.Player2 != nil)
 		return nil
 	}
 }
