@@ -9,7 +9,9 @@ var logger *slog.Logger
 
 func InitLogger(development bool) {
 	if development {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
 	} else {
 		logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	}

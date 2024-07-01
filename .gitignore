@@ -20,3 +20,5 @@ out/
 # Task directory for checksum
 .task
 
+cmd/server/server
+cmd/client/client
