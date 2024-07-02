@@ -27,7 +27,10 @@ func (g *Game) PlayTurn(turn int) {
 			continue
 		}
 		input := ""
-		fmt.Scanln(&input)
+		_, err := fmt.Scanln(&input)
+		if err != nil && err.Error() != "unexpected newline" {
+			return
+		}
 
 		to_keep := strings.Split(input, ",")
 
@@ -62,8 +65,8 @@ func (g *Game) PlayRound() {
 	g.Player1.StealTokens(g.Player2)
 	g.Player2.StealTokens(g.Player1)
 
-	fmt.Printf("%s: %dHP, %dTK\n", g.Player1.Name, g.Player1.Health, g.Player1.Token)
-	fmt.Printf("%s: %dHP, %dTK\n", g.Player2.Name, g.Player2.Health, g.Player2.Token)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Player1.Name, g.Player1.Health, g.Player1.Tokens)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Player2.Name, g.Player2.Health, g.Player2.Tokens)
 
 	g.Player1.UnkeepDices()
 	g.Player2.UnkeepDices()

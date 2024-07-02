@@ -1,23 +1,17 @@
-package commands
+package server
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"slices"
 	"sync"
 
+	"github.com/e-gloo/orlog/internal/commands"
 	og "github.com/e-gloo/orlog/internal/orlog"
 	"github.com/gorilla/websocket"
 )
 
 var joinableGames = sync.Map{}
-
-type Packet struct {
-	Command Command `json:"command"`
-	Data    string  `json:"data"`
-}
 
 type gameManager struct {
 	game        *og.Game
@@ -28,33 +22,33 @@ type gameManager struct {
 type CommandHandler struct {
 	manager          *gameManager
 	isHost           bool
-	expectedCommands []Command
+	expectedCommands []commands.Command
 }
 
 func NewCommandHandler() *CommandHandler {
 	return &CommandHandler{
-		expectedCommands: []Command{
-			CreateGame,
-			JoinGame,
+		expectedCommands: []commands.Command{
+			commands.CreateGame,
+			commands.JoinGame,
 		},
 	}
 }
 
-func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *Packet) error {
+func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) error {
 	if !slices.Contains(ch.expectedCommands, packet.Command) {
 		slog.Warn("Unexpected command", "command", packet.Command)
-		if err := SendPacket(conn, &Packet{Command: CommandError}); err != nil {
+		if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandError}); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
 	}
 
 	switch packet.Command {
-	case CreateGame:
+	case commands.CreateGame:
 		return ch.handleCreateGame(conn)
-	case JoinGame:
+	case commands.JoinGame:
 		return ch.handleJoinGame(conn, packet)
-	case AddPlayer:
+	case commands.AddPlayer:
 		return ch.handleAddPlayer(conn, packet)
 	default:
 		return ch.handleDefaultCase(conn, packet.Command)
@@ -76,21 +70,21 @@ func (ch *CommandHandler) handleCreateGame(conn *websocket.Conn) error {
 	joinableGames.Store(game.Uuid, manager)
 	ch.isHost = true
 	ch.manager = manager
-	ch.expectedCommands = []Command{AddPlayer}
+	ch.expectedCommands = []commands.Command{commands.AddPlayer}
 	slog.Info("Game created", "uuid", game.Uuid)
 
-	if err := SendPacket(conn, &Packet{Command: CommandOK, Data: game.Uuid}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandOK, Data: game.Uuid}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if err := SendPacket(conn, &Packet{Command: AddPlayer}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.AddPlayer}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
 	return nil
 }
 
-func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *Packet) error {
+func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *commands.Packet) error {
 	slog.Info("Trying to join...", "uuid", packet.Data)
 	value, ok := joinableGames.Load(packet.Data)
 	if !ok {
@@ -101,21 +95,21 @@ func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *Packet) e
 	manager := value.(*gameManager)
 	manager.player2Conn = conn
 	ch.manager = manager
-	ch.expectedCommands = []Command{AddPlayer}
+	ch.expectedCommands = []commands.Command{commands.AddPlayer}
 	slog.Info("Joined game", "uuid", packet.Data)
 	joinableGames.Delete(packet.Data)
 
-	if err := SendPacket(conn, &Packet{Command: CommandOK, Data: packet.Data}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandOK, Data: packet.Data}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if err := SendPacket(conn, &Packet{Command: AddPlayer}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.AddPlayer}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 	return nil
 }
 
-func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *Packet) error {
+func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *commands.Packet) error {
 	if ch.isHost {
 		ch.manager.game.SetPlayer1(packet.Data)
 		slog.Info("Player 1 added", "name", packet.Data)
@@ -124,18 +118,18 @@ func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *Packet) 
 		slog.Info("Player 2 added", "name", packet.Data)
 	}
 
-	ch.expectedCommands = []Command{}
+	ch.expectedCommands = []commands.Command{}
 
-	if err := SendPacket(conn, &Packet{Command: CommandOK}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandOK}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
 	if ch.manager.game.IsGameReady() {
 		slog.Info("Game is starting...")
-		if err := SendPacket(ch.manager.player1Conn, &Packet{Command: GameStarting}); err != nil {
+		if err := commands.SendPacket(ch.manager.player1Conn, &commands.Packet{Command: commands.GameStarting}); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
-		if err := SendPacket(ch.manager.player2Conn, &Packet{Command: GameStarting}); err != nil {
+		if err := commands.SendPacket(ch.manager.player2Conn, &commands.Packet{Command: commands.GameStarting}); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
@@ -146,24 +140,10 @@ func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *Packet) 
 	}
 }
 
-func (ch *CommandHandler) handleDefaultCase(conn *websocket.Conn, command Command) error {
+func (ch *CommandHandler) handleDefaultCase(conn *websocket.Conn, command commands.Command) error {
 	slog.Debug("Unknown command", "command", command)
-	if err := SendPacket(conn, &Packet{Command: CommandError}); err != nil {
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandError}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
-	}
-	return nil
-}
-
-func SendPacket(conn *websocket.Conn, packet *Packet) error {
-	newPacketBuffer := new(bytes.Buffer)
-	err := json.NewEncoder(newPacketBuffer).Encode(packet)
-	if err != nil {
-		return fmt.Errorf("error encoding data: %w", err)
-	}
-
-	err = conn.WriteMessage(websocket.TextMessage, newPacketBuffer.Bytes())
-	if err != nil {
-		return fmt.Errorf("error writing message: %w", err)
 	}
 	return nil
 }

@@ -3,14 +3,20 @@ package orlog
 type Player struct {
 	Name     string `json:"name"`
 	Health   int    `json:"health"`
-	Token    int    `json:"token"`
+	Tokens   int    `json:"tokens"`
 	Dices    [6]Die `json:"dices"`
 	Position int    `json:"position"`
 	// gods []God
 }
 
 func NewPlayer(name string) *Player {
-	return &Player{Name: name}
+	return &Player{
+		Name:     name,
+		Health:   15,
+		Tokens:   0,
+		Dices:    InitDices(),
+		Position: -1,
+	}
 }
 
 func (p *Player) RollDices() {
@@ -64,7 +70,7 @@ func (p *Player) GainTokens() {
 		}
 	}
 
-	p.Token += nbMagics
+	p.Tokens += nbMagics
 }
 
 func (p *Player) StealTokens(player *Player) {
@@ -76,7 +82,7 @@ func (p *Player) StealTokens(player *Player) {
 		}
 	}
 
-	nbToken := min(nbThieves, player.Token)
-	p.Token += nbToken
-	player.Token -= nbToken
+	nbTokens := min(nbThieves, player.Tokens)
+	p.Tokens += nbTokens
+	player.Tokens -= nbTokens
 }

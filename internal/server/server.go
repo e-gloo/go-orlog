@@ -40,10 +40,9 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	ch := commands.NewCommandHandler()
+	ch := NewCommandHandler()
 	for {
 		_, message, err := conn.ReadMessage()
-		slog.Info("New message")
 		if err != nil {
 			slog.Error("read", "err", err)
 			break
@@ -55,6 +54,8 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 			slog.Error("Error unmarshalling packet", "err", err)
 			return
 		}
+
+		slog.Info("New message", "packet", packet)
 
 		err = ch.Handle(conn, packet)
 		if err != nil {

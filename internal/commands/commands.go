@@ -1,6 +1,19 @@
 package commands
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+
+	"github.com/gorilla/websocket"
+)
+
 type Command string
+
+type Packet struct {
+	Command Command `json:"command"`
+	Data    string  `json:"data"`
+}
 
 const (
 	CreateGame   Command = "create"
@@ -21,3 +34,17 @@ const (
 	CommandOK    Command = "ok"
 	CommandError Command = "error"
 )
+
+func SendPacket(conn *websocket.Conn, packet *Packet) error {
+	newPacketBuffer := new(bytes.Buffer)
+	err := json.NewEncoder(newPacketBuffer).Encode(packet)
+	if err != nil {
+		return fmt.Errorf("error encoding data: %w", err)
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, newPacketBuffer.Bytes())
+	if err != nil {
+		return fmt.Errorf("error writing message: %w", err)
+	}
+	return nil
+}
