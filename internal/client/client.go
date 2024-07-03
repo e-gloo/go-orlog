@@ -50,7 +50,11 @@ func ListenForServer(conn *websocket.Conn, ioh IOHandler) error {
 			}
 
 			slog.Debug("New message", "packet", packet)
-			ch.Handle(conn, packet)
+			err = ch.Handle(conn, packet)
+			if err != nil {
+				slog.Error("Error handling packet", "err", err)
+				return
+			}
 		}
 	}()
 

@@ -5,17 +5,11 @@ import (
 )
 
 type ClientGame struct {
-	Uuid string
 	Data *og.Game
 }
 
-func NewClientGame(uuid string) *ClientGame {
-	game := og.NewGame()
-
-	// TODO: hydrate game with data from server
-
+func NewClientGame(game *og.Game) *ClientGame {
 	return &ClientGame{
-		Uuid: uuid,
 		Data: game,
 	}
 }

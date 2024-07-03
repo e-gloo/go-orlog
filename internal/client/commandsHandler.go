@@ -1,16 +1,19 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/e-gloo/orlog/internal/commands"
+	og "github.com/e-gloo/orlog/internal/orlog"
 	"github.com/gorilla/websocket"
 )
 
 type CommandHandler struct {
 	ioh  IOHandler
 	conn *websocket.Conn
+	game *ClientGame
 }
 
 func NewCommandHandler(ioh IOHandler, conn *websocket.Conn) *CommandHandler {
@@ -26,6 +29,8 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) 
 		return ch.handleCreateOrJoin()
 	case commands.AddPlayer:
 		return ch.handleAddPlayer(conn)
+	case commands.GameStarting:
+		return ch.handleGameStarting(packet)
 	case commands.CommandOK:
 		if packet.Data != "" {
 			ch.ioh.DisplayMessage(fmt.Sprintf("%s\n", packet.Data))
@@ -80,6 +85,18 @@ func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn) error {
 	if err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleGameStarting(packet *commands.Packet) error {
+	var game *og.Game
+
+	if err := json.Unmarshal([]byte(packet.Data), game); err != nil {
+		return fmt.Errorf("error unmarshalling game: %w", err)
+	}
+
+	ch.game = NewClientGame(game)
 
 	return nil
 }

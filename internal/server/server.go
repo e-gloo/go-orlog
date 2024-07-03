@@ -40,7 +40,12 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	ch := NewCommandHandler()
+	ch := NewCommandHandler(conn)
+	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CreateOrJoin, Data: "Welcome to Orlog!"}); err != nil {
+		slog.Error("Error sending packet", "err", err)
+		return
+	}
+
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -57,9 +62,9 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 
 		slog.Debug("New message", "packet", packet)
 
-		err = ch.Handle(conn, packet)
+		err = ch.Handle(packet)
 		if err != nil {
-			slog.Error("Error handling message", "err", err)
+			slog.Error("Error handling packet", "err", err)
 			return
 		}
 	}
