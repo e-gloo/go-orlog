@@ -85,12 +85,24 @@ func (g *Game) selectFirstPlayer() {
 	}
 }
 
-func (g *Game) SetPlayer1(name string) {
+func (g *Game) SetPlayer1(name string) error {
+	if g.Player2 != nil && g.Player2.Name == name {
+		return fmt.Errorf("name already exists")
+	}
+
 	g.Player1 = NewPlayer(name)
+
+	return nil
 }
 
-func (g *Game) SetPlayer2(name string) {
+func (g *Game) SetPlayer2(name string) error {
+	if g.Player1 != nil && g.Player1.Name == name {
+		return fmt.Errorf("name already exists")
+	}
+
 	g.Player2 = NewPlayer(name)
+
+	return nil
 }
 
 func (g *Game) IsGameReady() bool {
