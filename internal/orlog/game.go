@@ -5,22 +5,25 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 type Game struct {
-	Uuid    string
-	Player1 *Player
-	Player2 *Player
+	Players      map[string]*Player
+	PlayersOrder []string
+}
+
+func NewGame() *Game {
+	return &Game{
+		Players:      make(map[string]*Player),
+		PlayersOrder: make([]string, 0),
+	}
 }
 
 func (g *Game) PlayTurn(turn int) {
-	players := [2]*Player{g.Player1, g.Player2}
-	for player_idx := range players {
-		fmt.Println("Turn", turn, players[player_idx].Name)
-		players[player_idx].RollDices()
-		PrintDices(players[player_idx].Dices)
+	for _, username := range g.PlayersOrder {
+		fmt.Println("Turn", turn, g.Players[username].Name)
+		g.Players[username].RollDices()
+		PrintDices(g.Players[username].Dices)
 
 		// We dont pick the dices
 		if turn > 2 {
@@ -39,7 +42,7 @@ func (g *Game) PlayTurn(turn int) {
 			if err != nil {
 				continue
 			}
-			players[player_idx].Dices[i-1].Kept = true
+			g.Players[username].Dices[i-1].Kept = true
 		}
 	}
 }
@@ -51,73 +54,55 @@ func (g *Game) PlayRound() {
 	// ask if should use god
 
 	// gain tokens
-	g.Player1.GainTokens()
-	g.Player2.GainTokens()
+	g.Players[g.PlayersOrder[0]].GainTokens()
+	g.Players[g.PlayersOrder[1]].GainTokens()
 
 	// damage phase
-	g.Player1.AttackPlayer(g.Player2)
-	if g.Player2.Health <= 0 {
+	g.Players[g.PlayersOrder[0]].AttackPlayer(g.Players[g.PlayersOrder[1]])
+	if g.Players[g.PlayersOrder[1]].Health <= 0 {
 		return
 	}
-	g.Player2.AttackPlayer(g.Player1)
+	g.Players[g.PlayersOrder[1]].AttackPlayer(g.Players[g.PlayersOrder[0]])
 
 	// thief phase
-	g.Player1.StealTokens(g.Player2)
-	g.Player2.StealTokens(g.Player1)
+	g.Players[g.PlayersOrder[0]].StealTokens(g.Players[g.PlayersOrder[1]])
+	g.Players[g.PlayersOrder[1]].StealTokens(g.Players[g.PlayersOrder[0]])
 
-	fmt.Printf("%s: %dHP, %dTK\n", g.Player1.Name, g.Player1.Health, g.Player1.Tokens)
-	fmt.Printf("%s: %dHP, %dTK\n", g.Player2.Name, g.Player2.Health, g.Player2.Tokens)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Players[g.PlayersOrder[0]].Name, g.Players[g.PlayersOrder[0]].Health, g.Players[g.PlayersOrder[0]].Tokens)
+	fmt.Printf("%s: %dHP, %dTK\n", g.Players[g.PlayersOrder[1]].Name, g.Players[g.PlayersOrder[1]].Health, g.Players[g.PlayersOrder[1]].Tokens)
 
-	g.Player1.UnkeepDices()
-	g.Player2.UnkeepDices()
+	g.Players[g.PlayersOrder[0]].UnkeepDices()
+	g.Players[g.PlayersOrder[1]].UnkeepDices()
 }
 
 func (g *Game) changePlayersPosition() {
-	tmp := g.Player1
-	g.Player1 = g.Player2
-	g.Player2 = tmp
+	tmp := g.PlayersOrder[0]
+	g.PlayersOrder[0] = g.PlayersOrder[1]
+	g.PlayersOrder[1] = tmp
 }
 
-func (g *Game) selectFirstPlayer() {
+func (g *Game) SelectFirstPlayer() {
 	firstPlayer := rand.Intn(2)
 	if firstPlayer == 1 {
 		g.changePlayersPosition()
 	}
 }
 
-func (g *Game) SetPlayer1(name string) error {
-	if g.Player2 != nil && g.Player2.Name == name {
+func (g *Game) AddPlayer(name string) error {
+	if len(g.PlayersOrder) != 0 && g.Players[g.PlayersOrder[0]] != nil && g.Players[g.PlayersOrder[0]].Name == name {
 		return fmt.Errorf("name already exists")
+	} else if len(g.PlayersOrder) >= 2 {
+		return fmt.Errorf("game is full")
+	} else {
+		g.PlayersOrder = append(g.PlayersOrder, name)
+		g.Players[name] = NewPlayer(name)
+
+		return nil
 	}
-
-	g.Player1 = NewPlayer(name)
-
-	return nil
-}
-
-func (g *Game) SetPlayer2(name string) error {
-	if g.Player1 != nil && g.Player1.Name == name {
-		return fmt.Errorf("name already exists")
-	}
-
-	g.Player2 = NewPlayer(name)
-
-	return nil
 }
 
 func (g *Game) IsGameReady() bool {
-	return g.Player1 != nil && g.Player2 != nil
-}
-
-func InitGame() (*Game, error) {
-	newuuid, err := uuid.NewUUID()
-	if err != nil {
-		fmt.Println("Error at generating uuid", err)
-		return nil, err
-	}
-	game := &Game{
-		Uuid: newuuid.String(),
-	}
-
-	return game, nil
+	return len(g.PlayersOrder) == 2 &&
+		g.Players[g.PlayersOrder[0]] != nil &&
+		g.Players[g.PlayersOrder[1]] != nil
 }

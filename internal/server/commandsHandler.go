@@ -7,14 +7,13 @@ import (
 	"sync"
 
 	"github.com/e-gloo/orlog/internal/commands"
-	og "github.com/e-gloo/orlog/internal/orlog"
 	"github.com/gorilla/websocket"
 )
 
 var joinableGames = sync.Map{}
 
 type gameManager struct {
-	game    *og.Game
+	game    *ServerGame
 	players map[string]*websocket.Conn
 }
 
@@ -60,7 +59,7 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) 
 func (ch *CommandHandler) handleCreateGame(conn *websocket.Conn) error {
 	slog.Info("Creating new game")
 
-	game, err := og.InitGame()
+	game, err := NewServerGame()
 	if err != nil {
 		return fmt.Errorf("error initializing game: %w", err)
 	}
@@ -111,33 +110,23 @@ func (ch *CommandHandler) handleJoinGame(conn *websocket.Conn, packet *commands.
 }
 
 func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *commands.Packet) error {
-	if ch.isHost {
-		if err := ch.manager.game.SetPlayer1(packet.Data); err != nil {
-			if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandError, Data: err.Error()}); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
 
-			if err := commands.SendPacket(conn, &commands.Packet{Command: commands.AddPlayer}); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
-			return nil
+	if err := ch.manager.game.Data.AddPlayer(packet.Data); err != nil {
+		if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandError, Data: err.Error()}); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
 		}
 
-		ch.manager.players[packet.Data] = conn
+		if err := commands.SendPacket(conn, &commands.Packet{Command: commands.AddPlayer}); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+		return nil
+	}
+
+	ch.manager.players[packet.Data] = conn
+
+	if ch.isHost {
 		slog.Info("Player 1 added", "name", packet.Data)
 	} else {
-		if err := ch.manager.game.SetPlayer2(packet.Data); err != nil {
-			if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CommandError, Data: err.Error()}); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
-
-			if err := commands.SendPacket(conn, &commands.Packet{Command: commands.AddPlayer}); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
-			return nil
-		}
-
-		ch.manager.players[packet.Data] = conn
 		slog.Info("Player 2 added", "name", packet.Data)
 	}
 
@@ -147,19 +136,16 @@ func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn, packet *commands
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if ch.manager.game.IsGameReady() {
+	if ch.manager.game.Data.IsGameReady() {
+		ch.manager.game.Data.SelectFirstPlayer()
 		slog.Info("Game is starting...")
 		for u := range ch.manager.players {
 			if err := commands.SendPacket(ch.manager.players[u], &commands.Packet{Command: commands.GameStarting}); err != nil {
 				return fmt.Errorf("error sending packet: %w", err)
 			}
 		}
-		return nil
-	} else {
-		slog.Debug("Player 1 ready", "status", ch.manager.game.Player1 != nil)
-		slog.Debug("Player 2 ready", "status", ch.manager.game.Player2 != nil)
-		return nil
 	}
+	return nil
 }
 
 func (ch *CommandHandler) handleDefaultCase(conn *websocket.Conn, command commands.Command) error {
