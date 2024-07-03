@@ -9,10 +9,6 @@ tasks:
     cmds:
       - command -v go > /dev/null 2> /dev/null || (echo "Go is not installed"; exit 1)
 
-  check-air:
-    cmds:
-      - command -v air > /dev/null 2> /dev/null || ( echo ">> Installing air" && go install github.com/air-verse/air@latest )
-
   check-lint:
     cmds:
       - command -v golangci-lint > /dev/null 2> /dev/null || ( echo ">> Installing golangci-lint" && go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 )
@@ -40,10 +36,30 @@ tasks:
     cmds:
       - go build -o out/server -v cmd/server/main.go
 
-  run-server:
-    deps: [check-go, check-air]
+  build-client:
+    deps: [check-go]
     cmds:
-      - air -c .air.toml
+      - go build -o out/client -v cmd/client/main.go
+
+  run-server:
+    deps: [build-server]
+    cmds:
+      - ./out/server --dev
+    watch: true
+    sources:
+      - 'internal/**/*.go'
+      - 'cmd/server/main.go'
+      - exclude: 'internal/client/**/*.go'
+
+  run-client:
+    deps: [build-client]
+    cmds:
+      - ./out/client --dev
+    watch: true
+    sources:
+      - 'internal/**/*.go'
+      - 'cmd/client/main.go'
+      - exclude: 'internal/server/**/*.go'
 
   clean-out:
     cmds:
