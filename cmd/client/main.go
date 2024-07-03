@@ -19,8 +19,11 @@ func main() {
 	logging.InitLogger(*dev)
 
 	var conn *websocket.Conn
+
+	var ioh client.IOHandler = &client.TermHandler{}
+
 	for conn == nil {
-		url, err := readServerUrl()
+		url, err := readServerUrl(ioh)
 		if err != nil {
 			slog.Error("Could not read server URL", "err", err)
 			return
@@ -29,20 +32,21 @@ func main() {
 		conn, err = client.NewClient(url)
 		if err != nil {
 			slog.Error("Error connecting to server", "err", err)
+			ioh.DisplayMessage(fmt.Sprintf("Failed to connect to %s", url))
 			continue
 		}
 	}
 
-	if err := client.ListenForServer(conn); err != nil {
+	if err := client.ListenForServer(conn, ioh); err != nil {
 		slog.Error("Error starting game", "err", err)
 	}
 }
 
-func readServerUrl() (*url.URL, error) {
+func readServerUrl(ioh client.IOHandler) (*url.URL, error) {
 	serverInput := "localhost:8080"
-	fmt.Println("Enter the server URL:")
-	_, err := fmt.Scanln(&serverInput)
-	if err != nil && err.Error() != "unexpected newline" {
+	ioh.DisplayMessage("Enter the server URL:")
+	err := ioh.ReadInput(&serverInput)
+	if err != nil {
 		return nil, err
 	}
 

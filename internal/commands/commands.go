@@ -26,6 +26,7 @@ const (
 )
 
 const (
+	CreateOrJoin   Command = "create_or_join"
 	SelectDices    Command = "select_dices"
 	WantToPlayGods Command = "want_to_play_gods"
 )
