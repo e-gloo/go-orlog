@@ -20,6 +20,9 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) 
 	case commands.AddPlayer:
 		return ch.handleAddPlayer(conn)
 	case commands.CommandOK:
+		if packet.Data != "" {
+			fmt.Printf("%s\n", packet.Data)
+		}
 		return nil
 	case commands.CommandError:
 		slog.Debug("Oops désolé :D")
