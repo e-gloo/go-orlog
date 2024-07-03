@@ -1,21 +1,19 @@
 package orlog
 
 type Player struct {
-	Name     string `json:"name"`
-	Health   int    `json:"health"`
-	Tokens   int    `json:"tokens"`
-	Dices    [6]Die `json:"dices"`
-	Position int    `json:"position"`
+	Name   string `json:"name"`
+	Health int    `json:"health"`
+	Tokens int    `json:"tokens"`
+	Dices  [6]Die `json:"dices"`
 	// gods []God
 }
 
 func NewPlayer(name string) *Player {
 	return &Player{
-		Name:     name,
-		Health:   15,
-		Tokens:   0,
-		Dices:    InitDices(),
-		Position: -1,
+		Name:   name,
+		Health: 15,
+		Tokens: 0,
+		Dices:  InitDices(),
 	}
 }
 
