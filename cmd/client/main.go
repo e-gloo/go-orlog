@@ -33,7 +33,7 @@ func main() {
 		}
 	}
 
-	if err := client.StartGame(conn); err != nil {
+	if err := client.ListenForServer(conn); err != nil {
 		slog.Error("Error starting game", "err", err)
 	}
 }

@@ -55,7 +55,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.Info("New message", "packet", packet)
+		slog.Debug("New message", "packet", packet)
 
 		err = ch.Handle(conn, packet)
 		if err != nil {

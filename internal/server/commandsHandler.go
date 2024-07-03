@@ -50,6 +50,9 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) 
 		return ch.handleJoinGame(conn, packet)
 	case commands.AddPlayer:
 		return ch.handleAddPlayer(conn, packet)
+	case commands.CommandError:
+		slog.Debug("Oops désolé :D")
+		return nil
 	default:
 		return ch.handleDefaultCase(conn, packet.Command)
 	}
