@@ -16,6 +16,7 @@ type Face struct {
 }
 
 type Die struct {
+	// FIXME: Faces are not required to be sent every time, only at init.
 	Faces        [6]Face `json:"faces"`
 	Current_face int     `json:"current_faces"`
 	Kept         bool    `json:"kept"`

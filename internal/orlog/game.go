@@ -23,7 +23,7 @@ func (g *Game) PlayTurn(turn int) {
 	for _, username := range g.PlayersOrder {
 		fmt.Println("Turn", turn, g.Players[username].Name)
 		g.Players[username].RollDices()
-		PrintDices(g.Players[username].Dices)
+		fmt.Println(g.Players[username].FormatDices())
 
 		// We dont pick the dices
 		if turn > 2 {

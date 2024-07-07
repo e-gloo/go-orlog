@@ -11,15 +11,17 @@ import (
 )
 
 type CommandHandler struct {
-	ioh  IOHandler
-	conn *websocket.Conn
-	game *ClientGame
+	ioh        IOHandler
+	conn       *websocket.Conn
+	game       *ClientGame
+	myUsername string
 }
 
 func NewCommandHandler(ioh IOHandler, conn *websocket.Conn) *CommandHandler {
 	return &CommandHandler{
-		ioh:  ioh,
-		conn: conn,
+		ioh:        ioh,
+		conn:       conn,
+		myUsername: "Player",
 	}
 }
 
@@ -31,6 +33,8 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *commands.Packet) 
 		return ch.handleAddPlayer(conn)
 	case commands.GameStarting:
 		return ch.handleGameStarting(packet)
+	case commands.SelectDices:
+		return ch.handleSelectDices(packet)
 	case commands.CommandOK:
 		if packet.Data != "" {
 			ch.ioh.DisplayMessage(fmt.Sprintf("%s\n", packet.Data))
@@ -70,17 +74,16 @@ func (ch *CommandHandler) handleCreateOrJoin() error {
 }
 
 func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn) error {
-	username := "Player"
 	ch.ioh.DisplayMessage("Enter your name : ")
 
-	err := ch.ioh.ReadInput(&username)
+	err := ch.ioh.ReadInput(&ch.myUsername)
 	if err != nil {
 		return err
 	}
 
 	err = commands.SendPacket(conn, &commands.Packet{
 		Command: commands.AddPlayer,
-		Data:    username,
+		Data:    ch.myUsername,
 	})
 	if err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
@@ -90,13 +93,31 @@ func (ch *CommandHandler) handleAddPlayer(conn *websocket.Conn) error {
 }
 
 func (ch *CommandHandler) handleGameStarting(packet *commands.Packet) error {
-	var game *og.Game
+	var game og.Game
 
-	if err := json.Unmarshal([]byte(packet.Data), game); err != nil {
+	if err := json.Unmarshal([]byte(packet.Data), &game); err != nil {
 		return fmt.Errorf("error unmarshalling game: %w", err)
 	}
 
-	ch.game = NewClientGame(game)
+	ch.game = NewClientGame(&game)
+
+	return nil
+}
+
+func (ch *CommandHandler) handleSelectDices(packet *commands.Packet) error {
+	if err := json.Unmarshal([]byte(packet.Data), ch.game.Data); err != nil {
+		return fmt.Errorf("error unmarshalling game: %w", err)
+	}
+
+	ch.ioh.DisplayMessage(ch.game.Data.Players[ch.myUsername].FormatDices())
+	input := ""
+	if err := ch.ioh.ReadInput(&input); err != nil {
+		return fmt.Errorf("error while choosing dices: %w", err)
+	}
+
+	if err := commands.SendPacket(ch.conn, &commands.Packet{Command: commands.KeepDices, Data: input}); err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
+	}
 
 	return nil
 }

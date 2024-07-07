@@ -1,5 +1,9 @@
 package orlog
 
+import (
+	"bytes"
+)
+
 type Player struct {
 	Name   string `json:"name"`
 	Health int    `json:"health"`
@@ -83,4 +87,15 @@ func (p *Player) StealTokens(player *Player) {
 	nbTokens := min(nbThieves, player.Tokens)
 	p.Tokens += nbTokens
 	player.Tokens -= nbTokens
+}
+
+func (p *Player) FormatDices() string {
+	var buff bytes.Buffer
+
+	for dice_nb, die := range p.Dices {
+		buff.WriteString(string(rune(1+dice_nb)) + " ")
+		buff.WriteString(die.Face().String() + " ")
+	}
+
+	return buff.String()
 }
