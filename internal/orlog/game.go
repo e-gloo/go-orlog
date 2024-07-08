@@ -15,7 +15,7 @@ type Game struct {
 func NewGame() *Game {
 	return &Game{
 		Players:      make(map[string]*Player),
-		PlayersOrder: make([]string, 0),
+		PlayersOrder: make([]string, 0, 2),
 	}
 }
 
@@ -51,8 +51,13 @@ func (g *Game) PlayRound() {
 	for i := 0; i < 3; i++ {
 		g.PlayTurn(i + 1)
 	}
+
 	// ask if should use god
 
+	g.ComputeRound()
+}
+
+func (g *Game) ComputeRound() {
 	// gain tokens
 	g.Players[g.PlayersOrder[0]].GainTokens()
 	g.Players[g.PlayersOrder[1]].GainTokens()
@@ -75,7 +80,7 @@ func (g *Game) PlayRound() {
 	g.Players[g.PlayersOrder[1]].UnkeepDices()
 }
 
-func (g *Game) changePlayersPosition() {
+func (g *Game) ChangePlayersPosition() {
 	tmp := g.PlayersOrder[0]
 	g.PlayersOrder[0] = g.PlayersOrder[1]
 	g.PlayersOrder[1] = tmp
@@ -84,7 +89,7 @@ func (g *Game) changePlayersPosition() {
 func (g *Game) SelectFirstPlayer() {
 	firstPlayer := rand.Intn(2)
 	if firstPlayer == 1 {
-		g.changePlayersPosition()
+		g.ChangePlayersPosition()
 	}
 }
 

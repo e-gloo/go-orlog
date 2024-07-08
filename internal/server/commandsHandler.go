@@ -187,6 +187,8 @@ func (ch *CommandHandler) handleStartingGame() error {
 	ch.manager.players[firstUsername].ExpectedCommands = []commands.Command{commands.KeepDices}
 	ch.manager.players[secondUsername].ExpectedCommands = []commands.Command{}
 
+	ch.manager.game.Rolls++
+
 	return nil
 }
 
@@ -203,10 +205,78 @@ func (ch *CommandHandler) handleKeepDices(packet *commands.Packet) error {
 		ch.manager.game.Data.Players[ch.Username].Dices[i-1].Kept = true
 	}
 
-	// TODO: get other player's username, roll his dices and ask for next input
+	if ch.manager.game.Rolls >= 4 {
+		for u := range ch.manager.players {
+			ch.manager.game.Data.Players[u].RollDices()
+		}
 
-	// question how to keep track of the rolls done per round ? we need only 3 per player
-	// maybe a static in the handler ? up to 6 then reset to 0 on ?
+		ch.manager.game.Data.ComputeRound()
+		ch.manager.game.Rolls = 0
+
+		gameData, err := ch.manager.game.String()
+		if err != nil {
+			return fmt.Errorf("error serializing game data: %w", err)
+		}
+
+		// Send every player the update of the game
+		for u := range ch.manager.players {
+			if err := commands.SendPacket(ch.manager.players[u].Conn, &commands.Packet{Command: commands.GameInfo, Data: gameData}); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		if ch.manager.game.Data.Players[ch.manager.game.Data.PlayersOrder[1]].Health <= 0 {
+			// P1 won
+			slog.Info("Bravo P1 :)")
+			panic("Bravo P1 :)")
+		} else if ch.manager.game.Data.Players[ch.manager.game.Data.PlayersOrder[0]].Health <= 0 {
+			// P2 won
+			slog.Info("Bravo P2 :)")
+			panic("Bravo P2 :)")
+		} else {
+			ch.manager.game.Data.ChangePlayersPosition()
+
+			firstUsername := ch.manager.game.Data.PlayersOrder[0]
+			secondUsername := ch.manager.game.Data.PlayersOrder[1]
+			ch.manager.game.Data.Players[firstUsername].RollDices()
+
+			gameData, err := ch.manager.game.String()
+			if err != nil {
+				return fmt.Errorf("error serializing game data: %w", err)
+			}
+
+			// Send P1 the gameData after its first roll.
+			if err := commands.SendPacket(ch.manager.players[firstUsername].Conn, &commands.Packet{Command: commands.SelectDices, Data: gameData}); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+
+			ch.manager.players[firstUsername].ExpectedCommands = []commands.Command{commands.KeepDices}
+			ch.manager.players[secondUsername].ExpectedCommands = []commands.Command{}
+
+			ch.manager.game.Rolls++
+		}
+	} else {
+		otherUsername := ch.manager.game.Data.PlayersOrder[slices.IndexFunc(ch.manager.game.Data.PlayersOrder, func(p string) bool {
+			return p != ch.Username
+		})]
+
+		ch.manager.game.Data.Players[otherUsername].RollDices()
+
+		gameData, err := ch.manager.game.String()
+		if err != nil {
+			return fmt.Errorf("error serializing game data: %w", err)
+		}
+
+		// Send otherPlayer the gameData after its roll.
+		if err := commands.SendPacket(ch.manager.players[otherUsername].Conn, &commands.Packet{Command: commands.SelectDices, Data: gameData}); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+
+		ch.manager.players[ch.Username].ExpectedCommands = []commands.Command{}
+		ch.manager.players[otherUsername].ExpectedCommands = []commands.Command{commands.KeepDices}
+
+		ch.manager.game.Rolls++
+	}
 
 	return nil
 }

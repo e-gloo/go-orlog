@@ -23,6 +23,7 @@ const (
 	GameStarting Command = "starting"
 	PlayGods     Command = "play_gods"
 	KeepDices    Command = "keep_dices"
+	GameInfo     Command = "game_info"
 )
 
 const (
@@ -30,6 +31,22 @@ const (
 	SelectDices    Command = "select_dices"
 	WantToPlayGods Command = "want_to_play_gods"
 )
+
+// TODO: create data structure for each communication server/client
+/* exemple:
+
+type DiceStatus struct {
+	p1: {
+		faceIndexes = [0, 1, 5, 2, 0, 1]
+		facesKept = [false, false, true, true, true, false]
+	},
+	p2: {
+		faceIndexes = [0, 1, 5, 2, 0, 1]
+		facesKept = [false, false, true, true, true, false]
+	}
+}
+
+*/
 
 const (
 	CommandOK    Command = "ok"

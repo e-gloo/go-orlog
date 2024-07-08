@@ -1,7 +1,7 @@
 package orlog
 
 import (
-	"bytes"
+	"fmt"
 )
 
 type Player struct {
@@ -90,12 +90,16 @@ func (p *Player) StealTokens(player *Player) {
 }
 
 func (p *Player) FormatDices() string {
-	var buff bytes.Buffer
+	var res string
 
 	for dice_nb, die := range p.Dices {
-		buff.WriteString(string(rune(1+dice_nb)) + " ")
-		buff.WriteString(die.Face().String() + " ")
+		res = fmt.Sprintf(
+			"%s%d %s",
+			res,
+			1+dice_nb,
+			die.Face().String(),
+		)
 	}
 
-	return buff.String()
+	return res
 }

@@ -9,8 +9,9 @@ import (
 )
 
 type ServerGame struct {
-	Uuid string
-	Data *og.Game
+	Uuid  string
+	Data  *og.Game
+	Rolls int
 }
 
 func NewServerGame() (*ServerGame, error) {
@@ -20,8 +21,9 @@ func NewServerGame() (*ServerGame, error) {
 	}
 
 	return &ServerGame{
-		Uuid: newuuid.String(),
-		Data: og.NewGame(),
+		Uuid:  newuuid.String(),
+		Data:  og.NewGame(),
+		Rolls: 0,
 	}, nil
 }
 

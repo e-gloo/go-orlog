@@ -23,9 +23,9 @@ type Die struct {
 }
 
 func (f *Face) String() string {
-	// if f.magic {
-	// 	return f.kind + "🔮\t"
-	// }
+	if f.Magic {
+		return f.Kind + "🔮\t"
+	}
 	return f.Kind + " \t"
 }
 
