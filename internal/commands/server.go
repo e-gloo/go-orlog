@@ -30,15 +30,16 @@ type ConfigurePlayerMessage struct {
 	Gods []ConfigurePlayerMessageGod
 }
 
-type SelectDiceMessagePlayer struct {
-	FaceIndexes [6]int
-	FacesKept   [6]bool
+type SelectDiceMessagePlayerDie struct {
+	FaceIndex int
+	FaceKept  bool
 }
 
+type SelectDiceMessagePlayer []SelectDiceMessagePlayerDie
+
 type SelectDiceMessage struct {
-	Turn int
-	P1   SelectDiceMessagePlayer
-	P2   SelectDiceMessagePlayer
+	Turn    int
+	Players map[string]SelectDiceMessagePlayer
 }
 
 type WantToPlaysGodsMessage struct {
@@ -47,11 +48,12 @@ type WantToPlaysGodsMessage struct {
 }
 
 type GameStartingMessageDieFace struct {
-	Face string
+	Face  string
+	Magic bool
 }
 
 type GameStartingMessageDie struct {
-	Faces [6]GameStartingMessageDieFace
+	Faces []GameStartingMessageDieFace
 }
 
 type GameStartingMessagePlayer struct {
@@ -61,9 +63,9 @@ type GameStartingMessagePlayer struct {
 }
 
 type GameStartingMessage struct {
-	Dice [6]GameStartingMessageDie
-	P1   GameStartingMessagePlayer
-	P2   GameStartingMessagePlayer
+	YourUsername string
+	Dice         []GameStartingMessageDie
+	Players      map[string]GameStartingMessagePlayer
 }
 
 type CommandErrorMessage struct {

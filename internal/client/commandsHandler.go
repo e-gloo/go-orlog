@@ -11,17 +11,15 @@ import (
 )
 
 type CommandHandler struct {
-	ioh        IOHandler
-	conn       *websocket.Conn
-	game       *ClientGame
-	myUsername string
+	ioh  IOHandler
+	conn *websocket.Conn
+	game *ClientGame
 }
 
 func NewCommandHandler(ioh IOHandler, conn *websocket.Conn) *CommandHandler {
 	return &CommandHandler{
-		ioh:        ioh,
-		conn:       conn,
-		myUsername: "Player",
+		ioh:  ioh,
+		conn: conn,
 	}
 }
 
@@ -38,7 +36,7 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *c.Packet) error {
 	case c.SelectDice:
 		return ch.handleSelectDice(packet)
 	case c.CommandError:
-		return ch.handleErrorCommand(packet.Command)
+		return ch.handleErrorCommand(packet)
 	default:
 		return ch.handleDefaultCase(packet.Command)
 	}
@@ -91,12 +89,13 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 
 	ch.ioh.DisplayMessage("Enter your name : ")
 
-	err := ch.ioh.ReadInput(&ch.myUsername)
+	input := "Player"
+	err := ch.ioh.ReadInput(&input)
 	if err != nil {
 		return err
 	}
 
-	if err = c.SendPacket(ch.conn, c.AddPlayer, &c.AddPlayerMessage{Username: ch.myUsername, GodIndexes: [3]int{0, 0, 0}}); err != nil {
+	if err = c.SendPacket(ch.conn, c.AddPlayer, &c.AddPlayerMessage{Username: input, GodIndexes: [3]int{0, 0, 0}}); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
@@ -110,8 +109,10 @@ func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 	}
 
 	// TODO: create a game object and properly hydrate it.
-	// ch.game = NewClientGame()
+	ch.game = NewClientGame(gameStartingMessage.YourUsername)
 	// ch.game.Hydrate(gameStartingMessage)
+
+	ch.ioh.DisplayMessage(ch.game.MyUsername + ": GET READY FOR VALHALLA !")
 
 	return nil
 }
@@ -124,7 +125,7 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 
 	// TODO: properly propagate the dice status to the game object
 
-	ch.ioh.DisplayMessage(ch.game.Data.Players[ch.myUsername].FormatDice())
+	// ch.ioh.DisplayMessage(ch.game.Data.Players[ch.game.MyUsername].FormatDice())
 	input := ""
 	if err := ch.ioh.ReadInput(&input); err != nil {
 		return fmt.Errorf("error while choosing dice: %w", err)
@@ -152,8 +153,13 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 	return nil
 }
 
-func (ch *CommandHandler) handleErrorCommand(command c.Command) error {
-	slog.Debug("Command did not work", "command", command)
+func (ch *CommandHandler) handleErrorCommand(packet *c.Packet) error {
+	var errorMessage c.CommandErrorMessage
+	if err := c.ParsePacketData(packet, &errorMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	slog.Info("Command did not work", "reason", errorMessage.Reason)
 	return nil
 }
 

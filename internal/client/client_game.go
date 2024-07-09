@@ -1,15 +1,11 @@
 package client
 
-import (
-	og "github.com/e-gloo/orlog/internal/orlog"
-)
-
 type ClientGame struct {
-	Data *og.Game
+	MyUsername string
 }
 
-func NewClientGame(game *og.Game) *ClientGame {
+func NewClientGame(playerUsername string) *ClientGame {
 	return &ClientGame{
-		Data: game,
+		MyUsername: playerUsername,
 	}
 }
