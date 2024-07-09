@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 
 	og "github.com/e-gloo/orlog/internal/orlog"
@@ -25,13 +24,4 @@ func NewServerGame() (*ServerGame, error) {
 		Data:  og.NewGame(),
 		Rolls: 0,
 	}, nil
-}
-
-func (sg *ServerGame) String() (string, error) {
-	jsonStr, err := json.Marshal(sg.Data)
-	if err != nil {
-		return "", fmt.Errorf("error marshalling game: %w", err)
-	}
-
-	return string(jsonStr), nil
 }

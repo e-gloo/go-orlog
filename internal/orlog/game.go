@@ -22,10 +22,10 @@ func NewGame() *Game {
 func (g *Game) PlayTurn(turn int) {
 	for _, username := range g.PlayersOrder {
 		fmt.Println("Turn", turn, g.Players[username].Name)
-		g.Players[username].RollDices()
-		fmt.Println(g.Players[username].FormatDices())
+		g.Players[username].RollDice()
+		fmt.Println(g.Players[username].FormatDice())
 
-		// We dont pick the dices
+		// We dont pick the dice
 		if turn > 2 {
 			continue
 		}
@@ -42,7 +42,7 @@ func (g *Game) PlayTurn(turn int) {
 			if err != nil {
 				continue
 			}
-			g.Players[username].Dices[i-1].Kept = true
+			g.Players[username].Dice[i-1].Kept = true
 		}
 	}
 }
@@ -76,8 +76,8 @@ func (g *Game) ComputeRound() {
 	fmt.Printf("%s: %dHP, %dTK\n", g.Players[g.PlayersOrder[0]].Name, g.Players[g.PlayersOrder[0]].Health, g.Players[g.PlayersOrder[0]].Tokens)
 	fmt.Printf("%s: %dHP, %dTK\n", g.Players[g.PlayersOrder[1]].Name, g.Players[g.PlayersOrder[1]].Health, g.Players[g.PlayersOrder[1]].Tokens)
 
-	g.Players[g.PlayersOrder[0]].UnkeepDices()
-	g.Players[g.PlayersOrder[1]].UnkeepDices()
+	g.Players[g.PlayersOrder[0]].UnkeepDice()
+	g.Players[g.PlayersOrder[1]].UnkeepDice()
 }
 
 func (g *Game) ChangePlayersPosition() {

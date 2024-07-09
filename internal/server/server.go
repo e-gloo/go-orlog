@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/e-gloo/orlog/internal/commands"
+	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/e-gloo/orlog/internal/pkg/logging"
 	"github.com/gorilla/websocket"
 )
@@ -41,7 +41,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 	ch := NewCommandHandler(conn)
-	if err := commands.SendPacket(conn, &commands.Packet{Command: commands.CreateOrJoin, Data: "Welcome to Orlog!"}); err != nil {
+	if err := c.SendPacket(conn, c.CreateOrJoin, &c.CreateOrJoinMessage{Welcome: "Welcome to Orlog!"}); err != nil {
 		slog.Error("Error sending packet", "err", err)
 		return
 	}
@@ -53,7 +53,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		packet := &commands.Packet{}
+		packet := &c.Packet{}
 		err = json.Unmarshal(message, packet)
 		if err != nil {
 			slog.Error("Error unmarshalling packet", "err", err)

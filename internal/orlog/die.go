@@ -37,7 +37,7 @@ func (d *Die) Roll() {
 	d.Current_face = rand.Intn(6)
 }
 
-func InitDices() [6]Die {
+func InitDice() [6]Die {
 	// Based on https://boardgamegeek.com/thread/2541060/orlog-ac-valhalla-dice
 	// https://cf.geekdo-images.com/0J1WjiWz1jpny63yiVQwKA__original/img/OXm6A6qUuSZ_x3vZVCH-xWvEtXM=/0x0/filters:format(png)/pic5791191.png
 	return [6]Die{

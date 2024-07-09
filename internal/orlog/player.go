@@ -8,7 +8,7 @@ type Player struct {
 	Name   string `json:"name"`
 	Health int    `json:"health"`
 	Tokens int    `json:"tokens"`
-	Dices  [6]Die `json:"dices"`
+	Dice   [6]Die `json:"dice"`
 	// gods []God
 }
 
@@ -17,28 +17,28 @@ func NewPlayer(name string) *Player {
 		Name:   name,
 		Health: 15,
 		Tokens: 0,
-		Dices:  InitDices(),
+		Dice:   InitDice(),
 	}
 }
 
-func (p *Player) RollDices() {
-	for idx := range p.Dices {
-		if !p.Dices[idx].Kept {
-			p.Dices[idx].Roll()
+func (p *Player) RollDice() {
+	for idx := range p.Dice {
+		if !p.Dice[idx].Kept {
+			p.Dice[idx].Roll()
 		}
 	}
 }
 
-func (p *Player) UnkeepDices() {
-	for idx := range p.Dices {
-		p.Dices[idx].Kept = false
+func (p *Player) UnkeepDice() {
+	for idx := range p.Dice {
+		p.Dice[idx].Kept = false
 	}
 }
 
 func (p *Player) AttackPlayer(player *Player) {
 	nbArrows := 0
 	nbAxes := 0
-	for _, die := range p.Dices {
+	for _, die := range p.Dice {
 		if die.Face().Kind == Arrow {
 			nbArrows++
 		}
@@ -49,7 +49,7 @@ func (p *Player) AttackPlayer(player *Player) {
 
 	nbHelmets := 0
 	nbShields := 0
-	for _, die := range player.Dices {
+	for _, die := range player.Dice {
 		if die.Face().Kind == Helmet {
 			nbHelmets++
 		}
@@ -66,7 +66,7 @@ func (p *Player) AttackPlayer(player *Player) {
 func (p *Player) GainTokens() {
 	nbMagics := 0
 
-	for _, die := range p.Dices {
+	for _, die := range p.Dice {
 		if die.Face().Magic {
 			nbMagics++
 		}
@@ -78,7 +78,7 @@ func (p *Player) GainTokens() {
 func (p *Player) StealTokens(player *Player) {
 	nbThieves := 0
 
-	for _, die := range p.Dices {
+	for _, die := range p.Dice {
 		if die.Face().Kind == Thief {
 			nbThieves++
 		}
@@ -89,10 +89,10 @@ func (p *Player) StealTokens(player *Player) {
 	player.Tokens -= nbTokens
 }
 
-func (p *Player) FormatDices() string {
+func (p *Player) FormatDice() string {
 	var res string
 
-	for dice_nb, die := range p.Dices {
+	for dice_nb, die := range p.Dice {
 		res = fmt.Sprintf(
 			"%s%d %s",
 			res,
