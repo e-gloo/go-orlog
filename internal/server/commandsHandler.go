@@ -185,25 +185,26 @@ func (ch *CommandHandler) handleStartingGame() error {
 	// secondUsername := ch.game.PlayersOrder[1]
 	ch.game.Players[firstUsername].RollDice()
 
-	var selectDiceMessage c.SelectDiceMessage
-	// TODO: fill this selectDiceMessage struct with data from the game.
-	selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-	selectDiceMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
+	var diceRollMessage c.DiceRollMessage
+	diceRollMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
 	for u := range ch.game.Players {
-		selectDiceMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
+		diceRollMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
 		for die := range ch.game.Players[u].GetDice() {
-			selectDiceMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-			selectDiceMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
+			diceRollMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
+			diceRollMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
+		}
+	}
+	for u := range ch.game.Players {
+		if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
 		}
 	}
 
+	var selectDiceMessage c.SelectDiceMessage
+	selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
 	if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
-
-	// if err := c.SendPacket(ch.game.Players[secondUsername].Conn, c.OpponentDiceRoll, &selectDiceMessage); err != nil {
-	// 	return fmt.Errorf("error sending packet: %w", err)
-	// }
 
 	// ch.players[firstUsername].ExpectedCommands = []c.Command{c.KeepDice}
 	// ch.players[secondUsername].ExpectedCommands = []c.Command{}
@@ -233,15 +234,10 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 		}
 
 		slog.Info("Round is over, computing ...")
-		// ch.game.ComputeRound()
+		ch.game.ComputeRound()
 		ch.game.Rolls = 0
 
 		// TODO: new round ... we need to find a way to hydrate both clients after computation
-
-		// gameData, err := ch.game.String()
-		// if err != nil {
-		// 	return fmt.Errorf("error serializing game data: %w", err)
-		// }
 
 		// // Send every player the update of the game
 		// for u := range ch.players {
@@ -265,18 +261,23 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 			// secondUsername := ch.game.PlayersOrder[1]
 			ch.game.Players[firstUsername].RollDice()
 
-			var selectDiceMessage c.SelectDiceMessage
-			// TODO: fill this selectDiceMessage struct with data from the game.
-			selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-			selectDiceMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
+			var diceRollMessage c.DiceRollMessage
+			diceRollMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
 			for u := range ch.game.Players {
-				selectDiceMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
+				diceRollMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
 				for die := range ch.game.Players[u].GetDice() {
-					selectDiceMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-					selectDiceMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
+					diceRollMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
+					diceRollMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
+				}
+			}
+			for u := range ch.game.Players {
+				if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
+					return fmt.Errorf("error sending packet: %w", err)
 				}
 			}
 
+			var selectDiceMessage c.SelectDiceMessage
+			selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
 			if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
 				return fmt.Errorf("error sending packet: %w", err)
 			}
@@ -295,18 +296,24 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 
 		ch.game.Players[otherUsername].RollDice()
 
-		var selectDiceMessage c.SelectDiceMessage
-		// TODO: fill this selectDiceMessage struct with data from the game.
-		selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-		selectDiceMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
+		var rollDiceMessage c.DiceRollMessage
+		rollDiceMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
 		for u := range ch.game.Players {
-			selectDiceMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
+			rollDiceMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
 			for die := range ch.game.Players[u].GetDice() {
-				selectDiceMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-				selectDiceMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
+				rollDiceMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
+				rollDiceMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
 			}
 		}
 
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &rollDiceMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		var selectDiceMessage c.SelectDiceMessage
+		selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
 		if err := c.SendPacket(ch.game.Players[otherUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}

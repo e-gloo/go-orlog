@@ -34,6 +34,8 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *c.Packet) error {
 		return ch.handleConfigurePlayer(packet)
 	case c.GameStarting:
 		return ch.handleGameStarting(packet)
+	case c.DiceRoll:
+		return ch.handleDiceRoll(packet)
 	case c.SelectDice:
 		return ch.handleSelectDice(packet)
 	case c.CommandError:
@@ -120,17 +122,28 @@ func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 	return nil
 }
 
+func (ch *CommandHandler) handleDiceRoll(packet *c.Packet) error {
+	var diceRollMessage c.DiceRollMessage
+	if err := c.ParsePacketData(packet, &diceRollMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.game.UpdatePlayersDice(
+		diceRollMessage.Players,
+	)
+
+	ch.ioh.DisplayMessage(ch.game.FormatDices())
+
+	return nil
+}
+
 func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 	var selectDiceMessage c.SelectDiceMessage
 	if err := c.ParsePacketData(packet, &selectDiceMessage); err != nil {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	ch.game.UpdatePlayersDice(
-		selectDiceMessage.Players,
-	)
-
-	ch.ioh.DisplayMessage(ch.game.FormatDices())
+	ch.ioh.DisplayMessage("Choose your dice to keep (1-6, separated by commas, * to keep all): ")
 	input := ""
 	if err := ch.ioh.ReadInput(&input); err != nil {
 		return fmt.Errorf("error while choosing dice: %w", err)

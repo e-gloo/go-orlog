@@ -32,7 +32,7 @@ func (die *PlayerDie) Unkeep() {
 
 func (die *PlayerDie) Reset() {
 	die.kept = false
-	die.faceIndex = 0
+	// die.faceIndex = 0
 	die.quantity = 1
 }
 

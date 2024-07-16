@@ -2,6 +2,7 @@ package server_game
 
 import (
 	"fmt"
+	"log/slog"
 	"math/rand"
 
 	cmn "github.com/e-gloo/orlog/internal/commons"
@@ -73,40 +74,38 @@ func (g *ServerGame) GetOpponentName(you string) string {
 	return ""
 }
 
-// func (g *ServerGame) ComputeRound() {
-// 	// gain tokens
-// 	g.Players[g.PlayersOrder[0]].GainTokens()
-// 	g.Players[g.PlayersOrder[1]].GainTokens()
+func (g *ServerGame) ComputeRound() {
+	// gain tokens
+	g.Players[g.PlayersOrder[0]].GainTokens(g.Dice)
+	g.Players[g.PlayersOrder[1]].GainTokens(g.Dice)
 
-// 	// damage phase
-// 	g.Players[g.PlayersOrder[0]].AttackPlayer(g.Players[g.PlayersOrder[1]])
-// 	if g.Players[g.PlayersOrder[1]].Health <= 0 {
-// 		return
-// 	}
-// 	g.Players[g.PlayersOrder[1]].AttackPlayer(g.Players[g.PlayersOrder[0]])
+	// damage phase
+	g.Players[g.PlayersOrder[0]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[1]])
+	if g.Players[g.PlayersOrder[1]].GetHealth() <= 0 {
+		return
+	}
+	g.Players[g.PlayersOrder[1]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[0]])
 
-// 	// thief phase
-// 	g.Players[g.PlayersOrder[0]].StealTokens(g.Players[g.PlayersOrder[1]])
-// 	g.Players[g.PlayersOrder[1]].StealTokens(g.Players[g.PlayersOrder[0]])
+	// thief phase
+	g.Players[g.PlayersOrder[0]].StealTokens(g.Dice, g.Players[g.PlayersOrder[1]])
+	g.Players[g.PlayersOrder[1]].StealTokens(g.Dice, g.Players[g.PlayersOrder[0]])
 
-// 	slog.Info(
-// 		"game status",
-// 		"P1",
-// 		fmt.Sprintf(
-// 			"%s: %dHP, %dTK",
-// 			g.Players[g.PlayersOrder[0]].username,
-// 			g.Players[g.PlayersOrder[0]].health,
-// 			g.Players[g.PlayersOrder[0]].tokens,
-// 		),
-// 		"P2",
-// 		fmt.Sprintf(
-// 			"%s: %dHP, %dTK",
-// 			g.Players[g.PlayersOrder[1]].username,
-// 			g.Players[g.PlayersOrder[1]].health,
-// 			g.Players[g.PlayersOrder[1]].tokens,
-// 		),
-// 	)
+	slog.Debug(
+		"game status",
+		g.Players[g.PlayersOrder[0]].username,
+		fmt.Sprintf(
+			"%dHP, %dTK",
+			g.Players[g.PlayersOrder[0]].health,
+			g.Players[g.PlayersOrder[0]].tokens,
+		),
+		g.Players[g.PlayersOrder[1]].username,
+		fmt.Sprintf(
+			"%dHP, %dTK",
+			g.Players[g.PlayersOrder[1]].health,
+			g.Players[g.PlayersOrder[1]].tokens,
+		),
+	)
 
-// 	g.Players[g.PlayersOrder[0]].ResetDice()
-// 	g.Players[g.PlayersOrder[1]].ResetDice()
-// }
+	g.Players[g.PlayersOrder[0]].ResetDice()
+	g.Players[g.PlayersOrder[1]].ResetDice()
+}

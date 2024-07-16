@@ -1,4 +1,0 @@
-package socket
-
-func SendMessage() {
-}
