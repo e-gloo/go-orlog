@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	g "github.com/e-gloo/orlog/internal/client/game"
 	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
@@ -13,7 +14,7 @@ import (
 type CommandHandler struct {
 	ioh  IOHandler
 	conn *websocket.Conn
-	game *ClientGame
+	game *g.ClientGame
 }
 
 func NewCommandHandler(ioh IOHandler, conn *websocket.Conn) *CommandHandler {
@@ -108,9 +109,11 @@ func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	// TODO: create a game object and properly hydrate it.
-	ch.game = NewClientGame(gameStartingMessage.YourUsername)
-	// ch.game.Hydrate(gameStartingMessage)
+	ch.game = g.NewClientGame(
+		gameStartingMessage.YourUsername,
+		gameStartingMessage.Dice,
+		gameStartingMessage.Players,
+	)
 
 	ch.ioh.DisplayMessage(ch.game.MyUsername + ": GET READY FOR VALHALLA !")
 
@@ -123,9 +126,11 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	// TODO: properly propagate the dice status to the game object
+	ch.game.UpdatePlayersDice(
+		selectDiceMessage.Players,
+	)
 
-	// ch.ioh.DisplayMessage(ch.game.Data.Players[ch.game.MyUsername].FormatDice())
+	ch.ioh.DisplayMessage(ch.game.FormatDices())
 	input := ""
 	if err := ch.ioh.ReadInput(&input); err != nil {
 		return fmt.Errorf("error while choosing dice: %w", err)
@@ -138,7 +143,7 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 
 	_, err := regexp.MatchString("^([1-6],?){0,6}$", input)
 	if err != nil {
-		return fmt.Errorf("error while choosing dice: %w", err)
+		return fmt.Errorf("error while validating chosen dice: %w", err)
 	}
 
 	var keep [6]bool

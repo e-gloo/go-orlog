@@ -1,5 +1,9 @@
 package commands
 
+import (
+	cmn "github.com/e-gloo/orlog/internal/commons"
+)
+
 // Server to Client
 const (
 	CreateOrJoin    Command = "create_or_join"
@@ -20,26 +24,13 @@ type CreatedOrJoinedMessage struct {
 	Uuid string
 }
 
-type ConfigurePlayerMessageGod struct {
-	Name        string
-	Description string
-	Priority    int
-}
-
 type ConfigurePlayerMessage struct {
-	Gods []ConfigurePlayerMessageGod
+	Gods []cmn.GodDefinition
 }
-
-type SelectDiceMessagePlayerDie struct {
-	FaceIndex int
-	FaceKept  bool
-}
-
-type SelectDiceMessagePlayer []SelectDiceMessagePlayerDie
 
 type SelectDiceMessage struct {
 	Turn    int
-	Players map[string]SelectDiceMessagePlayer
+	Players cmn.PlayerMap[cmn.DiceState]
 }
 
 type WantToPlaysGodsMessage struct {
@@ -47,25 +38,10 @@ type WantToPlaysGodsMessage struct {
 	// or nothing if we trust client
 }
 
-type GameStartingMessageDieFace struct {
-	Face  string
-	Magic bool
-}
-
-type GameStartingMessageDie struct {
-	Faces []GameStartingMessageDieFace
-}
-
-type GameStartingMessagePlayer struct {
-	Username   string
-	Health     int
-	GodIndexes [3]int
-}
-
 type GameStartingMessage struct {
 	YourUsername string
-	Dice         []GameStartingMessageDie
-	Players      map[string]GameStartingMessagePlayer
+	Dice         []cmn.InitGameDie
+	Players      cmn.PlayerMap[cmn.InitGamePlayer]
 }
 
 type CommandErrorMessage struct {

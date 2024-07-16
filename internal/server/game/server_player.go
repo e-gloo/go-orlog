@@ -1,4 +1,4 @@
-package server
+package server_game
 
 import (
 	c "github.com/e-gloo/orlog/internal/commands"
@@ -29,9 +29,11 @@ func NewServerPlayer(conn *websocket.Conn, username string) *ServerPlayer {
 
 	return &ServerPlayer{
 		Conn:     conn,
-		username: username,
 		Expected: []c.Command{},
+		username: username,
 		dice:     dice,
+		health:   0,
+		tokens:   0,
 	}
 }
 
@@ -56,5 +58,11 @@ func (sp *ServerPlayer) RollDice() {
 		if !sp.dice[idx].IsKept() {
 			sp.dice[idx].Roll()
 		}
+	}
+}
+
+func (sp *ServerPlayer) ResetDice() {
+	for idx := range sp.dice {
+		sp.dice[idx].Reset()
 	}
 }
