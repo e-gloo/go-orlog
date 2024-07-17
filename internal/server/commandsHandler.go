@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"os"
 	"sync"
 
 	c "github.com/e-gloo/orlog/internal/commands"
@@ -149,7 +148,7 @@ func (ch *CommandHandler) handleAddPlayer(packet *c.Packet) error {
 }
 
 func (ch *CommandHandler) handleStartingGame() error {
-	ch.game.SelectFirstPlayer()
+	ch.game.Restart()
 	slog.Info("Game is starting...")
 
 	var gameStartingMessage c.GameStartingMessage
@@ -249,11 +248,31 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 		if ch.game.Players[ch.game.PlayersOrder[1]].GetHealth() <= 0 {
 			// P1 won
 			slog.Info("Congratulations P1, you won ! :)")
-			os.Exit(1)
+
+			var gameFinishedMessage c.GameFinishedMessage
+			gameFinishedMessage.Winner = ch.game.PlayersOrder[0]
+
+			for u := range ch.game.Players {
+				if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
+					return fmt.Errorf("error sending packet: %w", err)
+				}
+			}
+
+			ch.handleStartingGame()
 		} else if ch.game.Players[ch.game.PlayersOrder[0]].GetHealth() <= 0 {
 			// P2 won
 			slog.Info("Congratulations P2, you won ! :)")
-			os.Exit(2)
+
+			var gameFinishedMessage c.GameFinishedMessage
+			gameFinishedMessage.Winner = ch.game.PlayersOrder[1]
+
+			for u := range ch.game.Players {
+				if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
+					return fmt.Errorf("error sending packet: %w", err)
+				}
+			}
+
+			ch.handleStartingGame()
 		} else {
 			ch.game.ChangePlayersPosition()
 
@@ -322,6 +341,19 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 		// ch.players[otherUsername].ExpectedCommands = []c.Command{c.KeepDice}
 
 		ch.game.Rolls++
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) HandleRagequit() error {
+	opponent := ch.game.GetOpponentName(ch.Username)
+
+	var gameFinishedMessage c.GameFinishedMessage
+	gameFinishedMessage.Winner = opponent
+
+	if err := c.SendPacket(ch.game.Players[opponent].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
 	}
 
 	return nil

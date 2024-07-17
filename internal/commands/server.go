@@ -13,6 +13,7 @@ const (
 	SelectDice      Command = "select_dice"
 	WantToPlayGods  Command = "want_to_play_gods"
 	GameStarting    Command = "starting"
+	GameFinished    Command = "finished"
 	CommandError    Command = "error"
 )
 
@@ -46,6 +47,10 @@ type GameStartingMessage struct {
 	YourUsername string
 	Dice         []cmn.InitGameDie
 	Players      cmn.PlayerMap[cmn.InitGamePlayer]
+}
+
+type GameFinishedMessage struct {
+	Winner string
 }
 
 type CommandErrorMessage struct {

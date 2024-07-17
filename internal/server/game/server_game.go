@@ -65,6 +65,13 @@ func (g *ServerGame) SelectFirstPlayer() {
 	}
 }
 
+func (g *ServerGame) Restart() {
+	for _, p := range g.Players {
+		p.Reset()
+	}
+	g.Rolls = 0
+}
+
 func (g *ServerGame) GetOpponentName(you string) string {
 	for name := range g.Players {
 		if name != you {

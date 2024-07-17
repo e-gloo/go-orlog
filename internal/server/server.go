@@ -49,7 +49,11 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			slog.Error("read", "err", err)
+			if err, ok := err.(*websocket.CloseError); ok {
+				ch.HandleRagequit()
+			} else {
+				slog.Error("read", "err", err)
+			}
 			break
 		}
 

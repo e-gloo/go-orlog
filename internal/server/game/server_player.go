@@ -67,6 +67,12 @@ func (sp *ServerPlayer) ResetDice() {
 	}
 }
 
+func (sp *ServerPlayer) Reset() {
+	sp.health = 15
+	sp.tokens = 0
+	sp.ResetDice()
+}
+
 func (sp *ServerPlayer) assertFaces(dices [6]ServerDie, assert func(f *ServerFace) bool) int {
 	count := 0
 	for dieIdx, die := range dices {
@@ -80,7 +86,7 @@ func (sp *ServerPlayer) assertFaces(dices [6]ServerDie, assert func(f *ServerFac
 func (sp *ServerPlayer) GainTokens(dices [6]ServerDie) {
 	nbMagics := sp.assertFaces(
 		dices,
-		func(face *ServerFace) bool { return face.magic == true },
+		func(face *ServerFace) bool { return face.magic },
 	)
 
 	sp.tokens += nbMagics
