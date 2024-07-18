@@ -32,6 +32,8 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *c.Packet) error {
 		return ch.handleCreatedOrJoined(packet)
 	case c.ConfigurePlayer:
 		return ch.handleConfigurePlayer(packet)
+	case c.TurnFinished:
+		return ch.handleTurnFinished(packet)
 	case c.GameStarting:
 		return ch.handleGameStarting(packet)
 	case c.GameFinished:
@@ -107,6 +109,19 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 	return nil
 }
 
+func (ch *CommandHandler) handleTurnFinished(packet *c.Packet) error {
+	var turnFinishedMessage c.TurnFinishedMessage
+	if err := c.ParsePacketData(packet, &turnFinishedMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.game.UpdatePlayers(
+		turnFinishedMessage.Players,
+	)
+
+	return nil
+}
+
 func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 	var gameStartingMessage c.GameStartingMessage
 	if err := c.ParsePacketData(packet, &gameStartingMessage); err != nil {
@@ -145,7 +160,9 @@ func (ch *CommandHandler) handleDiceRoll(packet *c.Packet) error {
 		diceRollMessage.Players,
 	)
 
-	ch.ioh.DisplayMessage(ch.game.FormatDices())
+	ch.ioh.DisplayMessage(
+		ch.game.FormatGame(),
+	)
 
 	return nil
 }

@@ -232,18 +232,20 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 			ch.game.Players[u].RollDice()
 		}
 
+		// TODO: ask for P1 god
+
 		slog.Info("Round is over, computing ...")
-		ch.game.ComputeRound()
-		ch.game.Rolls = 0
 
-		// TODO: new round ... we need to find a way to hydrate both clients after computation
+		var turnFinishedMessage c.TurnFinishedMessage
+		turnFinishedMessage.Turn = ch.game.GetTurn()
 
-		// // Send every player the update of the game
-		// for u := range ch.players {
-		// 	if err := c.SendPacket(ch.players[u].Conn, &c.Packet{Command: c.GameInfo, Data: gameData}); err != nil {
-		// 		return fmt.Errorf("error sending packet: %w", err)
-		// 	}
-		// }
+		turnFinishedMessage.Players = ch.game.ComputeRound()
+
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.TurnFinished, &turnFinishedMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
 
 		if ch.game.Players[ch.game.PlayersOrder[1]].GetHealth() <= 0 {
 			// P1 won
@@ -300,10 +302,6 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 			if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
 				return fmt.Errorf("error sending packet: %w", err)
 			}
-
-			// if err := c.SendPacket(ch.game.Players[secondUsername].Conn, c.OpponentDiceRoll, &selectDiceMessage); err != nil {
-			// 	return fmt.Errorf("error sending packet: %w", err)
-			// }
 
 			// ch.players[firstUsername].ExpectedCommands = []c.Command{c.KeepDice}
 			// ch.players[secondUsername].ExpectedCommands = []c.Command{}

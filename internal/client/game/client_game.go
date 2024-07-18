@@ -51,6 +51,12 @@ func mapGameDieFaces(initFaces []cmn.InitGameDieFace) [6]ClientFace {
 	return res
 }
 
+func (cg *ClientGame) UpdatePlayers(update cmn.PlayerMap[cmn.UpdateGamePlayer]) {
+	for username, player := range update {
+		cg.Players[username].update(player)
+	}
+}
+
 func (cg *ClientGame) UpdatePlayersDice(update cmn.PlayerMap[cmn.DiceState]) {
 	for username, dice := range update {
 		cg.Players[username].updateDice(dice)
@@ -67,14 +73,14 @@ func (cg *ClientGame) GetOpponentName() string {
 
 }
 
-func (cg *ClientGame) FormatDices() string {
+func (cg *ClientGame) FormatGame() string {
 	res := ""
 
 	opponent := cg.Players[cg.GetOpponentName()]
 	player := cg.Players[cg.MyUsername]
 
 	for _, p := range []*ClientPlayer{opponent, player} {
-		res += p.username + ":\n"
+		res += fmt.Sprintf("%s HP: %d t: %d\n", p.username, p.health, p.tokens)
 		for dieIdx, die := range cg.Dice {
 			dieState := p.GetDice()[dieIdx]
 			res += fmt.Sprintf(

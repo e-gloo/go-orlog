@@ -12,8 +12,9 @@ const (
 	DiceRoll        Command = "dice_roll"
 	SelectDice      Command = "select_dice"
 	WantToPlayGods  Command = "want_to_play_gods"
-	GameStarting    Command = "starting"
-	GameFinished    Command = "finished"
+	TurnFinished    Command = "turn_finished"
+	GameStarting    Command = "game_starting"
+	GameFinished    Command = "game_finished"
 	CommandError    Command = "error"
 )
 
@@ -41,6 +42,11 @@ type SelectDiceMessage struct {
 type WantToPlaysGodsMessage struct {
 	// maybe the list of selected gods,
 	// or nothing if we trust client
+}
+
+type TurnFinishedMessage struct {
+	Turn    int
+	Players cmn.PlayerMap[cmn.UpdateGamePlayer]
 }
 
 type GameStartingMessage struct {

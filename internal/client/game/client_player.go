@@ -41,6 +41,11 @@ func (p *ClientPlayer) GetDice() PlayerDice {
 	return p.dice
 }
 
+func (p *ClientPlayer) update(update cmn.UpdateGamePlayer) {
+	p.health = update.Health
+	p.tokens = update.Tokens
+}
+
 func (p *ClientPlayer) updateDice(update cmn.DiceState) {
 	for i, state := range update {
 		p.dice[i].setFaceId(state.Index)

@@ -12,6 +12,8 @@ import (
 
 type ServerGame struct {
 	Uuid         string
+	count        int
+	turn         int
 	Rolls        int
 	Dice         [6]ServerDie
 	Players      cmn.PlayerMap[*ServerPlayer]
@@ -26,6 +28,8 @@ func NewServerGame() (*ServerGame, error) {
 
 	return &ServerGame{
 		Uuid:         newuuid.String(),
+		count:        0,
+		turn:         0,
 		Rolls:        0,
 		Dice:         InitDice(),
 		Players:      make(cmn.PlayerMap[*ServerPlayer]),
@@ -44,6 +48,10 @@ func (g *ServerGame) AddPlayer(conn *websocket.Conn, name string) error {
 
 		return nil
 	}
+}
+
+func (g *ServerGame) GetTurn() int {
+	return g.turn
 }
 
 func (g *ServerGame) IsGameReady() bool {
@@ -69,6 +77,8 @@ func (g *ServerGame) Restart() {
 	for _, p := range g.Players {
 		p.Reset()
 	}
+	g.count++
+	g.turn = 0
 	g.Rolls = 0
 }
 
@@ -81,24 +91,35 @@ func (g *ServerGame) GetOpponentName(you string) string {
 	return ""
 }
 
-func (g *ServerGame) ComputeRound() {
+func (g *ServerGame) ComputeRound() cmn.PlayerMap[cmn.UpdateGamePlayer] {
+	p1res := cmn.UpdateGamePlayer{}
+	p2res := cmn.UpdateGamePlayer{}
+
 	// gain tokens
-	g.Players[g.PlayersOrder[0]].GainTokens(g.Dice)
-	g.Players[g.PlayersOrder[1]].GainTokens(g.Dice)
+	p1res.TokensGained = g.Players[g.PlayersOrder[0]].GainTokens(g.Dice)
+	p2res.TokensGained = g.Players[g.PlayersOrder[1]].GainTokens(g.Dice)
 
 	// damage phase
-	g.Players[g.PlayersOrder[0]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[1]])
-	if g.Players[g.PlayersOrder[1]].GetHealth() <= 0 {
-		return
-	}
-	g.Players[g.PlayersOrder[1]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[0]])
+	p2res.ArrowDamageReceived, p2res.AxeDamageReceived = g.Players[g.PlayersOrder[0]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[1]])
+	if g.Players[g.PlayersOrder[1]].GetHealth() > 0 {
+		p1res.ArrowDamageReceived, p1res.AxeDamageReceived = g.Players[g.PlayersOrder[1]].AttackPlayer(g.Dice, g.Players[g.PlayersOrder[0]])
 
-	// thief phase
-	g.Players[g.PlayersOrder[0]].StealTokens(g.Dice, g.Players[g.PlayersOrder[1]])
-	g.Players[g.PlayersOrder[1]].StealTokens(g.Dice, g.Players[g.PlayersOrder[0]])
+		// thief phase
+		p1res.TokensStolen = g.Players[g.PlayersOrder[0]].StealTokens(g.Dice, g.Players[g.PlayersOrder[1]])
+		p2res.TokensStolen = g.Players[g.PlayersOrder[1]].StealTokens(g.Dice, g.Players[g.PlayersOrder[0]])
+	}
+
+	g.Players[g.PlayersOrder[0]].ResetDice()
+	g.Players[g.PlayersOrder[1]].ResetDice()
+
+	g.Rolls = 0
+	g.turn++
 
 	slog.Debug(
-		"game status",
+		fmt.Sprintf(
+			"Turn %d",
+			g.turn,
+		),
 		g.Players[g.PlayersOrder[0]].username,
 		fmt.Sprintf(
 			"%dHP, %dTK",
@@ -113,6 +134,13 @@ func (g *ServerGame) ComputeRound() {
 		),
 	)
 
-	g.Players[g.PlayersOrder[0]].ResetDice()
-	g.Players[g.PlayersOrder[1]].ResetDice()
+	p1res.Health = g.Players[g.PlayersOrder[0]].GetHealth()
+	p1res.Tokens = g.Players[g.PlayersOrder[0]].GetTokens()
+	p2res.Health = g.Players[g.PlayersOrder[1]].GetHealth()
+	p2res.Tokens = g.Players[g.PlayersOrder[1]].GetTokens()
+
+	return cmn.PlayerMap[cmn.UpdateGamePlayer]{
+		g.PlayersOrder[0]: p1res,
+		g.PlayersOrder[1]: p2res,
+	}
 }

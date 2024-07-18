@@ -83,16 +83,18 @@ func (sp *ServerPlayer) assertFaces(dices [6]ServerDie, assert func(f *ServerFac
 	return count
 }
 
-func (sp *ServerPlayer) GainTokens(dices [6]ServerDie) {
+func (sp *ServerPlayer) GainTokens(dices [6]ServerDie) int {
 	nbMagics := sp.assertFaces(
 		dices,
 		func(face *ServerFace) bool { return face.magic },
 	)
 
 	sp.tokens += nbMagics
+
+	return nbMagics
 }
 
-func (sp *ServerPlayer) AttackPlayer(dices [6]ServerDie, player *ServerPlayer) {
+func (sp *ServerPlayer) AttackPlayer(dices [6]ServerDie, player *ServerPlayer) (int, int) {
 	nbArrows := sp.assertFaces(dices, func(face *ServerFace) bool { return face.kind == Arrow })
 	nbAxes := sp.assertFaces(dices, func(face *ServerFace) bool { return face.kind == Axe })
 
@@ -103,12 +105,16 @@ func (sp *ServerPlayer) AttackPlayer(dices [6]ServerDie, player *ServerPlayer) {
 	axeDamage := max(nbAxes-nbHelmets, 0)
 
 	player.health = player.health - arrowDamage - axeDamage
+
+	return arrowDamage, axeDamage
 }
 
-func (sp *ServerPlayer) StealTokens(dices [6]ServerDie, player *ServerPlayer) {
+func (sp *ServerPlayer) StealTokens(dices [6]ServerDie, player *ServerPlayer) int {
 	nbThieves := sp.assertFaces(dices, func(face *ServerFace) bool { return face.kind == Thief })
 
 	nbToken := min(nbThieves, player.tokens)
 	sp.tokens += nbToken
 	player.tokens -= nbToken
+
+	return nbToken
 }
