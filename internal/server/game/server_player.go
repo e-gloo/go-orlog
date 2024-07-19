@@ -1,6 +1,8 @@
 package server_game
 
 import (
+	"log/slog"
+
 	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
@@ -11,29 +13,38 @@ type Player interface {
 	GetTokens() int
 }
 
+type GodChoice struct {
+	index int
+	level int
+}
+
 type ServerPlayer struct {
-	username string
-	health   int
-	tokens   int
-	dice     PlayerDice
+	username  string
+	health    int
+	tokens    int
+	dice      PlayerDice
+	gods      [3]int
+	godChoise *GodChoice
 
 	Conn     *websocket.Conn
 	Expected []c.Command
 }
 
-func NewServerPlayer(conn *websocket.Conn, username string) *ServerPlayer {
+func NewServerPlayer(conn *websocket.Conn, username string, godIndexes [3]int) *ServerPlayer {
 	dice := PlayerDice{}
 	for idx := range dice {
 		dice[idx] = NewPlayerDie()
 	}
 
 	return &ServerPlayer{
-		Conn:     conn,
-		Expected: []c.Command{},
-		username: username,
-		dice:     dice,
-		health:   15,
-		tokens:   0,
+		username:  username,
+		health:    15,
+		tokens:    50,
+		dice:      dice,
+		gods:      godIndexes,
+		godChoise: nil,
+		Conn:      conn,
+		Expected:  []c.Command{},
 	}
 }
 
@@ -53,6 +64,14 @@ func (sp *ServerPlayer) GetDice() PlayerDice {
 	return sp.dice
 }
 
+func (sp *ServerPlayer) GetGods() [3]int {
+	return sp.gods
+}
+
+func (p *ServerPlayer) GetGodChoice() *GodChoice {
+	return p.godChoise
+}
+
 func (sp *ServerPlayer) RollDice() {
 	for idx := range sp.dice {
 		if !sp.dice[idx].IsKept() {
@@ -69,7 +88,8 @@ func (sp *ServerPlayer) ResetDice() {
 
 func (sp *ServerPlayer) Reset() {
 	sp.health = 15
-	sp.tokens = 0
+	sp.tokens = 50
+	sp.godChoise = nil
 	sp.ResetDice()
 }
 
@@ -81,6 +101,17 @@ func (sp *ServerPlayer) assertFaces(dices [6]ServerDie, assert func(f *ServerFac
 		}
 	}
 	return count
+}
+
+func (sp *ServerPlayer) SelectGod(godIndex int, godLevel int) {
+	if godIndex != -1 && godLevel != -1 {
+		sp.godChoise = &GodChoice{
+			index: godIndex,
+			level: godLevel,
+		}
+	} else {
+		sp.godChoise = nil
+	}
 }
 
 func (sp *ServerPlayer) GainTokens(dices [6]ServerDie) int {
@@ -117,4 +148,15 @@ func (sp *ServerPlayer) StealTokens(dices [6]ServerDie, player *ServerPlayer) in
 	player.tokens -= nbToken
 
 	return nbToken
+}
+
+func (sp *ServerPlayer) activateGod(god *God, level int, game *ServerGame, opponent *ServerPlayer) bool {
+	if god.Levels[level].TokenCost >= sp.tokens {
+		return false
+	}
+
+	sp.tokens -= god.Levels[level].TokenCost
+	slog.Debug("god activation", "username", sp.username, "god", god.Name, "level", god.Levels[level].Description)
+	god.Activate(game, sp, opponent, god, level)
+	return true
 }

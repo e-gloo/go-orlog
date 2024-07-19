@@ -11,7 +11,7 @@ const (
 	ConfigurePlayer Command = "configure_player"
 	DiceRoll        Command = "dice_roll"
 	SelectDice      Command = "select_dice"
-	WantToPlayGods  Command = "want_to_play_gods"
+	AskToPlayGod    Command = "ask_to_play_god"
 	TurnFinished    Command = "turn_finished"
 	GameStarting    Command = "game_starting"
 	GameFinished    Command = "game_finished"
@@ -20,7 +20,6 @@ const (
 
 type CreateOrJoinMessage struct {
 	Welcome string
-	// Lobbies []string
 }
 
 type CreatedOrJoinedMessage struct {
@@ -28,7 +27,7 @@ type CreatedOrJoinedMessage struct {
 }
 
 type ConfigurePlayerMessage struct {
-	Gods []cmn.GodDefinition
+	Gods []cmn.InitGod
 }
 
 type DiceRollMessage struct {
@@ -39,10 +38,7 @@ type SelectDiceMessage struct {
 	Turn int
 }
 
-type WantToPlaysGodsMessage struct {
-	// maybe the list of selected gods,
-	// or nothing if we trust client
-}
+type AskToPlayGodMessage struct{}
 
 type TurnFinishedMessage struct {
 	Turn    int
@@ -52,6 +48,7 @@ type TurnFinishedMessage struct {
 type GameStartingMessage struct {
 	YourUsername string
 	Dice         []cmn.InitGameDie
+	Gods         []cmn.InitGod
 	Players      cmn.PlayerMap[cmn.InitGamePlayer]
 }
 

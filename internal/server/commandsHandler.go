@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	c "github.com/e-gloo/orlog/internal/commands"
-	cmn "github.com/e-gloo/orlog/internal/commons"
 	g "github.com/e-gloo/orlog/internal/server/game"
 	"github.com/gorilla/websocket"
 )
@@ -43,6 +42,8 @@ func (ch *CommandHandler) Handle(packet *c.Packet) error {
 		return ch.handleAddPlayer(packet)
 	case c.KeepDice:
 		return ch.handleKeepDice(packet)
+	case c.PlayGod:
+		return ch.handlePlayGod(packet)
 	default:
 		return ch.handleDefaultCase(packet.Command)
 	}
@@ -62,11 +63,15 @@ func (ch *CommandHandler) handleCreateGame() error {
 	// ch.ExpectedCommands = []c.Command{c.AddPlayer}
 	slog.Info("Game created", "uuid", game.Uuid)
 
-	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &c.CreatedOrJoinedMessage{Uuid: game.Uuid}); err != nil {
+	var createdOrJoinedMessage c.CreatedOrJoinedMessage
+	createdOrJoinedMessage.Uuid = game.Uuid
+	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &createdOrJoinedMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &c.ConfigurePlayerMessage{Gods: nil}); err != nil {
+	var configurePlayerMessage c.ConfigurePlayerMessage
+	configurePlayerMessage.Gods = ch.game.GetGodsDefinition()
+	if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &configurePlayerMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
@@ -83,7 +88,9 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 	value, ok := joinableGames.Load(joinGameMessage.Uuid)
 	if !ok {
 		slog.Debug("Error joining game, uuid not found", "uuid", joinGameMessage.Uuid)
-		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &c.CreateOrJoinMessage{Welcome: "Game not found, try again."}); err != nil {
+		var createOrJoinMessage c.CreateOrJoinMessage
+		createOrJoinMessage.Welcome = "Game not found, try again."
+		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &createOrJoinMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
@@ -99,11 +106,15 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 	slog.Info("Joined game", "uuid", joinGameMessage.Uuid)
 	joinableGames.Delete(joinGameMessage.Uuid)
 
-	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &c.CreatedOrJoinedMessage{Uuid: ch.game.Uuid}); err != nil {
+	var createdOrJoinedMessage c.CreatedOrJoinedMessage
+	createdOrJoinedMessage.Uuid = joinGameMessage.Uuid
+	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &createdOrJoinedMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
-	if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &c.ConfigurePlayerMessage{Gods: nil}); err != nil {
+	var configurePlayerMessage c.ConfigurePlayerMessage
+	configurePlayerMessage.Gods = ch.game.GetGodsDefinition()
+	if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &configurePlayerMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 	return nil
@@ -117,13 +128,16 @@ func (ch *CommandHandler) handleAddPlayer(packet *c.Packet) error {
 
 	slog.Debug("addPlayer", "game", ch.game, "username", message.Username)
 
-	// TODO: add message.GodIndexes to AddPlayer
-	if err := ch.game.AddPlayer(ch.Conn, message.Username); err != nil {
-		if err := c.SendPacket(ch.Conn, c.CommandError, &c.CommandErrorMessage{Reason: err.Error()}); err != nil {
+	if err := ch.game.AddPlayer(ch.Conn, message.Username, message.GodIndexes); err != nil {
+		var errorMessage c.CommandErrorMessage
+		errorMessage.Reason = err.Error()
+		if err := c.SendPacket(ch.Conn, c.CommandError, &errorMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 
-		if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &c.ConfigurePlayerMessage{Gods: nil}); err != nil {
+		var configurePlayerMessage c.ConfigurePlayerMessage
+		configurePlayerMessage.Gods = ch.game.GetGodsDefinition()
+		if err := c.SendPacket(ch.Conn, c.ConfigurePlayer, &configurePlayerMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
@@ -152,26 +166,8 @@ func (ch *CommandHandler) handleStartingGame() error {
 	slog.Info("Game is starting...")
 
 	var gameStartingMessage c.GameStartingMessage
-	gameStartingMessage.Players = make(cmn.PlayerMap[cmn.InitGamePlayer], 2)
-	for u := range ch.game.Players {
-		gameStartingMessage.Players[u] = cmn.InitGamePlayer{
-			Username:   u,
-			Health:     ch.game.Players[u].GetHealth(),
-			GodIndexes: [3]int{0, 0, 0},
-		}
-	}
-	gameStartingMessage.Dice = make([]cmn.InitGameDie, 6)
-	for i := 0; i < 6; i++ {
-		gameStartingMessage.Dice[i].Faces = make([]cmn.InitGameDieFace, 6)
-		for j := 0; j < 6; j++ {
-			gameStartingMessage.Dice[i].Faces[j] = cmn.InitGameDieFace{
-				Kind:  ch.game.Dice[i].GetFaces()[j].GetKind(),
-				Magic: ch.game.Dice[i].GetFaces()[j].IsMagic(),
-			}
-		}
-	}
-
-	// Send every player the data to init the game
+	gameStartingMessage.Players, gameStartingMessage.Dice = ch.game.GetStartingDefinition()
+	gameStartingMessage.Gods = ch.game.GetGodsDefinition()
 	for u := range ch.game.Players {
 		gameStartingMessage.YourUsername = u
 		if err := c.SendPacket(ch.game.Players[u].Conn, c.GameStarting, &gameStartingMessage); err != nil {
@@ -185,14 +181,7 @@ func (ch *CommandHandler) handleStartingGame() error {
 	ch.game.Players[firstUsername].RollDice()
 
 	var diceRollMessage c.DiceRollMessage
-	diceRollMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
-	for u := range ch.game.Players {
-		diceRollMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
-		for die := range ch.game.Players[u].GetDice() {
-			diceRollMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-			diceRollMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
-		}
-	}
+	diceRollMessage.Players = ch.game.GetRollDiceState()
 	for u := range ch.game.Players {
 		if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
@@ -232,81 +221,10 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 			ch.game.Players[u].RollDice()
 		}
 
-		// TODO: ask for P1 god
-
-		slog.Info("Round is over, computing ...")
-
-		var turnFinishedMessage c.TurnFinishedMessage
-		turnFinishedMessage.Turn = ch.game.GetTurn()
-
-		turnFinishedMessage.Players = ch.game.ComputeRound()
-
-		for u := range ch.game.Players {
-			if err := c.SendPacket(ch.game.Players[u].Conn, c.TurnFinished, &turnFinishedMessage); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
-		}
-
-		if ch.game.Players[ch.game.PlayersOrder[1]].GetHealth() <= 0 {
-			// P1 won
-			slog.Info("Congratulations P1, you won ! :)")
-
-			var gameFinishedMessage c.GameFinishedMessage
-			gameFinishedMessage.Winner = ch.game.PlayersOrder[0]
-
-			for u := range ch.game.Players {
-				if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
-					return fmt.Errorf("error sending packet: %w", err)
-				}
-			}
-
-			ch.handleStartingGame()
-		} else if ch.game.Players[ch.game.PlayersOrder[0]].GetHealth() <= 0 {
-			// P2 won
-			slog.Info("Congratulations P2, you won ! :)")
-
-			var gameFinishedMessage c.GameFinishedMessage
-			gameFinishedMessage.Winner = ch.game.PlayersOrder[1]
-
-			for u := range ch.game.Players {
-				if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
-					return fmt.Errorf("error sending packet: %w", err)
-				}
-			}
-
-			ch.handleStartingGame()
-		} else {
-			ch.game.ChangePlayersPosition()
-
-			firstUsername := ch.game.PlayersOrder[0]
-			// secondUsername := ch.game.PlayersOrder[1]
-			ch.game.Players[firstUsername].RollDice()
-
-			var diceRollMessage c.DiceRollMessage
-			diceRollMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
-			for u := range ch.game.Players {
-				diceRollMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
-				for die := range ch.game.Players[u].GetDice() {
-					diceRollMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-					diceRollMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
-				}
-			}
-			for u := range ch.game.Players {
-				if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
-					return fmt.Errorf("error sending packet: %w", err)
-				}
-			}
-
-			var selectDiceMessage c.SelectDiceMessage
-			selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-			if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
-			}
-
-			// ch.players[firstUsername].ExpectedCommands = []c.Command{c.KeepDice}
-			// ch.players[secondUsername].ExpectedCommands = []c.Command{}
-
-			ch.game.Rolls++
+		// TODO: ask P1 to play god
+		var askToPlayGodMessage c.AskToPlayGodMessage
+		if err := c.SendPacket(ch.game.Players[ch.game.PlayersOrder[0]].Conn, c.AskToPlayGod, &askToPlayGodMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
 		}
 	} else {
 		otherUsername := ch.game.GetOpponentName(ch.Username)
@@ -314,14 +232,7 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 		ch.game.Players[otherUsername].RollDice()
 
 		var rollDiceMessage c.DiceRollMessage
-		rollDiceMessage.Players = make(cmn.PlayerMap[cmn.DiceState], len(ch.game.Players))
-		for u := range ch.game.Players {
-			rollDiceMessage.Players[u] = make(cmn.DiceState, len(ch.game.Players[u].GetDice()))
-			for die := range ch.game.Players[u].GetDice() {
-				rollDiceMessage.Players[u][die].Index = ch.game.Players[u].GetDice()[die].GetFaceIndex()
-				rollDiceMessage.Players[u][die].Kept = ch.game.Players[u].GetDice()[die].IsKept()
-			}
-		}
+		rollDiceMessage.Players = ch.game.GetRollDiceState()
 
 		for u := range ch.game.Players {
 			if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &rollDiceMessage); err != nil {
@@ -344,7 +255,109 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 	return nil
 }
 
+func (ch *CommandHandler) handlePlayGod(packet *c.Packet) error {
+	var message c.PlayGodMessage
+	if err := c.ParsePacketData(packet, &message); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.game.Players[ch.Username].SelectGod(message.GodIndex, message.GodLevel)
+
+	if ch.Username == ch.game.PlayersOrder[0] {
+		// ask P2 to play god
+		var askToPlayGodMessage c.AskToPlayGodMessage
+		if err := c.SendPacket(ch.game.Players[ch.game.PlayersOrder[1]].Conn, c.AskToPlayGod, &askToPlayGodMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+	} else {
+		// round is over
+		slog.Info("Round is over, computing ...")
+
+		var turnFinishedMessage c.TurnFinishedMessage
+		turnFinishedMessage.Turn = ch.game.GetTurn()
+
+		turnFinishedMessage.Players = ch.game.ComputeRound()
+
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.TurnFinished, &turnFinishedMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		if ch.game.IsGameFinished() {
+			ch.handleGameFinished()
+		} else {
+			ch.game.ChangePlayersPosition()
+
+			firstUsername := ch.game.PlayersOrder[0]
+			// secondUsername := ch.game.PlayersOrder[1]
+			ch.game.Players[firstUsername].RollDice()
+
+			var diceRollMessage c.DiceRollMessage
+			diceRollMessage.Players = ch.game.GetRollDiceState()
+			for u := range ch.game.Players {
+				if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
+					return fmt.Errorf("error sending packet: %w", err)
+				}
+			}
+
+			var selectDiceMessage c.SelectDiceMessage
+			selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
+			if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+
+			// ch.players[firstUsername].ExpectedCommands = []c.Command{c.KeepDice}
+			// ch.players[secondUsername].ExpectedCommands = []c.Command{}
+
+			ch.game.Rolls++
+		}
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleGameFinished() error {
+	if ch.game.Players[ch.game.PlayersOrder[1]].GetHealth() <= 0 {
+		// P1 won
+		slog.Info("Congratulations P1, you won ! :)")
+
+		var gameFinishedMessage c.GameFinishedMessage
+		gameFinishedMessage.Winner = ch.game.PlayersOrder[0]
+
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		ch.handleStartingGame()
+	} else if ch.game.Players[ch.game.PlayersOrder[0]].GetHealth() <= 0 {
+		// P2 won
+		slog.Info("Congratulations P2, you won ! :)")
+
+		var gameFinishedMessage c.GameFinishedMessage
+		gameFinishedMessage.Winner = ch.game.PlayersOrder[1]
+
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.GameFinished, &gameFinishedMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		ch.handleStartingGame()
+	} else {
+		return fmt.Errorf("game is not finished")
+	}
+
+	return nil
+}
+
 func (ch *CommandHandler) HandleRagequit() error {
+	if ch.game == nil {
+		return fmt.Errorf("no game to ragequit")
+	}
+
 	opponent := ch.game.GetOpponentName(ch.Username)
 
 	var gameFinishedMessage c.GameFinishedMessage
@@ -359,7 +372,9 @@ func (ch *CommandHandler) HandleRagequit() error {
 
 func (ch *CommandHandler) handleUnexpectedCommand(command c.Command) error {
 	slog.Warn("Unexpected command", "command", command)
-	if err := c.SendPacket(ch.Conn, c.CommandError, &c.CommandErrorMessage{Reason: "unexpected command"}); err != nil {
+	var errorMessage c.CommandErrorMessage
+	errorMessage.Reason = "unexpected command"
+	if err := c.SendPacket(ch.Conn, c.CommandError, &errorMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 	return nil
@@ -367,7 +382,9 @@ func (ch *CommandHandler) handleUnexpectedCommand(command c.Command) error {
 
 func (ch *CommandHandler) handleDefaultCase(command c.Command) error {
 	slog.Debug("Unknown command", "command", command)
-	if err := c.SendPacket(ch.Conn, c.CommandError, &c.CommandErrorMessage{Reason: "unknown command"}); err != nil {
+	var errorMessage c.CommandErrorMessage
+	errorMessage.Reason = "unknown command"
+	if err := c.SendPacket(ch.Conn, c.CommandError, &errorMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 	return nil

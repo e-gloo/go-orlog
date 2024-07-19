@@ -1,14 +1,14 @@
-package commons
+package client_game
 
-type InitGodPower struct {
+type ClientGodPower struct {
 	Description string
 	TokenCost   int
 }
 
-type InitGod struct {
+type ClientGod struct {
 	Emoji       string
 	Name        string
 	Description string
 	Priority    int
-	Levels      [3]InitGodPower
+	Levels      [3]ClientGodPower
 }

@@ -9,6 +9,7 @@ type ClientPlayer struct {
 	health   int
 	tokens   int
 	dice     PlayerDice
+	gods     [3]int
 }
 
 func NewClientPlayer(init cmn.InitGamePlayer) *ClientPlayer {
@@ -22,6 +23,7 @@ func NewClientPlayer(init cmn.InitGamePlayer) *ClientPlayer {
 		health:   init.Health,
 		tokens:   0,
 		dice:     dice,
+		gods:     init.GodIndexes,
 	}
 }
 
@@ -39,6 +41,10 @@ func (p *ClientPlayer) GetTokens() int {
 
 func (p *ClientPlayer) GetDice() PlayerDice {
 	return p.dice
+}
+
+func (p *ClientPlayer) GetGods() [3]int {
+	return p.gods
 }
 
 func (p *ClientPlayer) update(update cmn.UpdateGamePlayer) {

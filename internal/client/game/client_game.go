@@ -10,9 +10,15 @@ type ClientGame struct {
 	MyUsername string
 	Players    cmn.PlayerMap[*ClientPlayer]
 	Dice       [6]ClientDie
+	Gods       []ClientGod
 }
 
-func NewClientGame(playerUsername string, initGameDice []cmn.InitGameDie, initPlayers cmn.PlayerMap[cmn.InitGamePlayer]) *ClientGame {
+func NewClientGame(
+	playerUsername string,
+	initGameDice []cmn.InitGameDie,
+	initGameGods []cmn.InitGod,
+	initPlayers cmn.PlayerMap[cmn.InitGamePlayer],
+) *ClientGame {
 	players := make(cmn.PlayerMap[*ClientPlayer], 2)
 
 	for u, p := range initPlayers {
@@ -22,6 +28,7 @@ func NewClientGame(playerUsername string, initGameDice []cmn.InitGameDie, initPl
 	return &ClientGame{
 		MyUsername: playerUsername,
 		Players:    players,
+		Gods:       mapGameGods(initGameGods),
 		Dice:       mapGameDice(initGameDice),
 	}
 }
@@ -51,6 +58,35 @@ func mapGameDieFaces(initFaces []cmn.InitGameDieFace) [6]ClientFace {
 	return res
 }
 
+func mapGameGods(initGods []cmn.InitGod) []ClientGod {
+	var res []ClientGod
+
+	for i := range initGods {
+		res = append(res, ClientGod{
+			Emoji:       initGods[i].Emoji,
+			Name:        initGods[i].Name,
+			Description: initGods[i].Description,
+			Priority:    initGods[i].Priority,
+			Levels:      mapGameGodPowers(initGods[i].Levels),
+		})
+	}
+
+	return res
+}
+
+func mapGameGodPowers(initPowers [3]cmn.InitGodPower) [3]ClientGodPower {
+	var res [3]ClientGodPower
+
+	for i := range initPowers {
+		res[i] = ClientGodPower{
+			Description: initPowers[i].Description,
+			TokenCost:   initPowers[i].TokenCost,
+		}
+	}
+
+	return res
+}
+
 func (cg *ClientGame) UpdatePlayers(update cmn.PlayerMap[cmn.UpdateGamePlayer]) {
 	for username, player := range update {
 		cg.Players[username].update(player)
@@ -74,23 +110,33 @@ func (cg *ClientGame) GetOpponentName() string {
 }
 
 func (cg *ClientGame) FormatGame() string {
-	res := ""
+	res := "\n"
 
 	opponent := cg.Players[cg.GetOpponentName()]
 	player := cg.Players[cg.MyUsername]
 
-	for _, p := range []*ClientPlayer{opponent, player} {
-		res += fmt.Sprintf("%s HP: %d t: %d\n", p.username, p.health, p.tokens)
-		for dieIdx, die := range cg.Dice {
-			dieState := p.GetDice()[dieIdx]
-			res += fmt.Sprintf(
-				"%d %s",
-				1+dieIdx,
-				die.FormatDie(dieState),
-			)
-		}
-		res += "\n"
-	}
+	res += fmt.Sprintf(" * %s HP: %d t: %d\t[%s]\n", opponent.username, opponent.health, opponent.tokens, formatGodEmojis(cg.Gods, opponent.GetGods()))
+	res += formatDice(cg.Dice, opponent.GetDice())
+	res += "\n\n"
+	res += formatDice(cg.Dice, player.GetDice())
+	res += fmt.Sprintf(" * %s HP: %d t: %d\t[%s]\n", player.username, player.health, player.tokens, formatGodEmojis(cg.Gods, player.GetGods()))
 
+	return res
+}
+
+func formatGodEmojis(gods []ClientGod, playerGods [3]int) string {
+	return fmt.Sprintf("%s, %s, %s", gods[playerGods[0]].Emoji, gods[playerGods[1]].Emoji, gods[playerGods[2]].Emoji)
+}
+
+func formatDice(dice [6]ClientDie, state PlayerDice) string {
+	res := ""
+	for dieIdx, die := range dice {
+		res += fmt.Sprintf(
+			"%d %s",
+			1+dieIdx,
+			die.FormatDie(state[dieIdx]),
+		)
+	}
+	res += "\n"
 	return res
 }

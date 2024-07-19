@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strconv"
 	"strings"
 
 	g "github.com/e-gloo/orlog/internal/client/game"
@@ -42,6 +43,8 @@ func (ch *CommandHandler) Handle(conn *websocket.Conn, packet *c.Packet) error {
 		return ch.handleDiceRoll(packet)
 	case c.SelectDice:
 		return ch.handleSelectDice(packet)
+	case c.AskToPlayGod:
+		return ch.handleAskToPlayGod(packet)
 	case c.CommandError:
 		return ch.handleErrorCommand(packet)
 	default:
@@ -89,20 +92,44 @@ func (ch *CommandHandler) handleCreatedOrJoined(packet *c.Packet) error {
 }
 
 func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
-	// var configurePlayerMessage c.ConfigurePlayerMessage
-	// if err := c.ParsePacketData(packet, &configurePlayerMessage); err != nil {
-	// 	return fmt.Errorf("error parsing packet data: %w", err)
-	// }
+	var configurePlayerMessage c.ConfigurePlayerMessage
+	if err := c.ParsePacketData(packet, &configurePlayerMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
 
 	ch.ioh.DisplayMessage("Enter your name : ")
 
 	input := "Player"
-	err := ch.ioh.ReadInput(&input)
-	if err != nil {
+	if err := ch.ioh.ReadInput(&input); err != nil {
 		return err
 	}
 
-	if err = c.SendPacket(ch.conn, c.AddPlayer, &c.AddPlayerMessage{Username: input, GodIndexes: [3]int{0, 0, 0}}); err != nil {
+	for i, god := range configurePlayerMessage.Gods {
+		ch.ioh.DisplayMessage(fmt.Sprintf("%d: %s", i+1, god.Name))
+	}
+	ch.ioh.DisplayMessage("Choose your gods (1-3, separated by commas): ")
+	godInput := ""
+	if err := ch.ioh.ReadInput(&godInput); err != nil {
+		return err
+	}
+	if ok, err := regexp.MatchString(`^[0-9]+(,[0-9]+){2}$`, godInput); !ok || err != nil {
+		return fmt.Errorf("error while validating chosen dice: %w", err)
+	}
+
+	godIndexes := [3]int{0, 0, 0}
+	for i, godIndex := range strings.Split(godInput, ",") {
+		v, err := strconv.Atoi(godIndex)
+		if err != nil {
+			return fmt.Errorf("error while parsing god index: %w", err)
+		}
+		godIndexes[i] = v - 1
+	}
+
+	var addPlayerMessage c.AddPlayerMessage
+	addPlayerMessage.Username = input
+	addPlayerMessage.GodIndexes = godIndexes
+
+	if err := c.SendPacket(ch.conn, c.AddPlayer, &addPlayerMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
@@ -131,6 +158,7 @@ func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 	ch.game = g.NewClientGame(
 		gameStartingMessage.YourUsername,
 		gameStartingMessage.Dice,
+		gameStartingMessage.Gods,
 		gameStartingMessage.Players,
 	)
 
@@ -179,13 +207,11 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 		return fmt.Errorf("error while choosing dice: %w", err)
 	}
 
-	input = strings.ReplaceAll(input, " ", "")
 	if input == "*" {
 		input = "1,2,3,4,5,6"
 	}
 
-	_, err := regexp.MatchString("^([1-6],?){0,6}$", input)
-	if err != nil {
+	if ok, err := regexp.MatchString(`^([1-6],?){0,6}$`, input); !ok || err != nil {
 		return fmt.Errorf("error while validating chosen dice: %w", err)
 	}
 
@@ -195,6 +221,56 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 	}
 
 	if err := c.SendPacket(ch.conn, c.KeepDice, &c.KeepDiceMessage{Kept: keep}); err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleAskToPlayGod(packet *c.Packet) error {
+	var askToPlayGodMessage c.AskToPlayGodMessage
+	if err := c.ParsePacketData(packet, &askToPlayGodMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	for localIndex, godId := range ch.game.Players[ch.game.MyUsername].GetGods() {
+		god := ch.game.Gods[godId]
+		ch.ioh.DisplayMessage(fmt.Sprintf("%d: %s %s (p%d)", localIndex+1, god.Emoji, god.Name, god.Priority))
+		for levelIndex, level := range god.Levels {
+			ch.ioh.DisplayMessage(fmt.Sprintf("\t%d: [t: %d] %s", levelIndex+1, level.TokenCost, level.Description))
+		}
+	}
+
+	ch.ioh.DisplayMessage("Choose a god to play and the level (ex: 3,3): ")
+	godInput := ""
+	if err := ch.ioh.ReadInput(&godInput); err != nil {
+		return fmt.Errorf("error while choosing god: %w", err)
+	}
+
+	localGodIndex := 0
+	godLevel := 0
+	if ok, err := regexp.MatchString(`^[0-9]+,[0-9]+$`, godInput); ok {
+		godInputSplit := strings.Split(godInput, ",")
+		if localGodIndex, err = strconv.Atoi(godInputSplit[0]); err != nil {
+			return fmt.Errorf("error while parsing god index: %w", err)
+		}
+		if godLevel, err = strconv.Atoi(godInputSplit[1]); err != nil {
+			return fmt.Errorf("error while parsing god level: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("error while validating god input: %w", err)
+	}
+
+	// FIXME: handle better the different cases (if any error the game is stuck, or index 2 and level -1)
+
+	var playGodMessage c.PlayGodMessage
+	if localGodIndex == 0 {
+		playGodMessage.GodIndex = -1
+	} else {
+		playGodMessage.GodIndex = ch.game.Players[ch.game.MyUsername].GetGods()[localGodIndex-1]
+	}
+	playGodMessage.GodLevel = godLevel - 1
+	if err := c.SendPacket(ch.conn, c.PlayGod, &playGodMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
 
