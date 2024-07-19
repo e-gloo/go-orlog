@@ -24,7 +24,7 @@ type ServerPlayer struct {
 	tokens    int
 	dice      PlayerDice
 	gods      [3]int
-	godChoise *GodChoice
+	godChoice *GodChoice
 
 	Conn     *websocket.Conn
 	Expected []c.Command
@@ -39,10 +39,10 @@ func NewServerPlayer(conn *websocket.Conn, username string, godIndexes [3]int) *
 	return &ServerPlayer{
 		username:  username,
 		health:    15,
-		tokens:    50,
+		tokens:    50, // FIXME: should be 0
 		dice:      dice,
 		gods:      godIndexes,
-		godChoise: nil,
+		godChoice: nil,
 		Conn:      conn,
 		Expected:  []c.Command{},
 	}
@@ -69,7 +69,7 @@ func (sp *ServerPlayer) GetGods() [3]int {
 }
 
 func (p *ServerPlayer) GetGodChoice() *GodChoice {
-	return p.godChoise
+	return p.godChoice
 }
 
 func (sp *ServerPlayer) RollDice() {
@@ -88,8 +88,8 @@ func (sp *ServerPlayer) ResetDice() {
 
 func (sp *ServerPlayer) Reset() {
 	sp.health = 15
-	sp.tokens = 50
-	sp.godChoise = nil
+	sp.tokens = 50 // FIXME: should be 0
+	sp.godChoice = nil
 	sp.ResetDice()
 }
 
@@ -105,12 +105,12 @@ func (sp *ServerPlayer) assertFaces(dices [6]ServerDie, assert func(f *ServerFac
 
 func (sp *ServerPlayer) SelectGod(godIndex int, godLevel int) {
 	if godIndex != -1 && godLevel != -1 {
-		sp.godChoise = &GodChoice{
+		sp.godChoice = &GodChoice{
 			index: godIndex,
 			level: godLevel,
 		}
 	} else {
-		sp.godChoise = nil
+		sp.godChoice = nil
 	}
 }
 

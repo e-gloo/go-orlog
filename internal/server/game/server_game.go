@@ -46,7 +46,7 @@ func (g *ServerGame) AddPlayer(conn *websocket.Conn, name string, godIndexes [3]
 		return fmt.Errorf("game is full")
 	} else {
 		for _, i := range godIndexes {
-			if i < 0 || i >= len(g.Gods) {
+			if i < 0 || i >= len(g.Gods) || g.Gods[i] == nil {
 				return fmt.Errorf("god not found: %d", i)
 			}
 		}
@@ -147,6 +147,10 @@ func (g *ServerGame) GetRollDiceState() cmn.PlayerMap[cmn.DiceState] {
 func (g *ServerGame) GetGodsDefinition() []cmn.InitGod {
 	res := make([]cmn.InitGod, len(g.Gods))
 	for i, god := range g.Gods {
+		if god == nil {
+			continue
+		}
+
 		res[i] = cmn.InitGod{
 			Emoji:       god.Emoji,
 			Name:        god.Name,

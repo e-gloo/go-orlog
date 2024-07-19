@@ -221,7 +221,6 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 			ch.game.Players[u].RollDice()
 		}
 
-		// TODO: ask P1 to play god
 		var askToPlayGodMessage c.AskToPlayGodMessage
 		if err := c.SendPacket(ch.game.Players[ch.game.PlayersOrder[0]].Conn, c.AskToPlayGod, &askToPlayGodMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
