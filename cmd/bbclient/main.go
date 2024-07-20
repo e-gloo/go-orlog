@@ -15,7 +15,7 @@ func main() {
 
 	logging.InitLogger(*dev)
 
-    client := bbtea.NewClient()
+	client := bbtea.NewClient()
 	if _, err := client.Run(); err != nil {
 		slog.Error(err.Error())
 	}
