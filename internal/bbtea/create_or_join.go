@@ -15,15 +15,17 @@ const (
 type createOrJoinModel struct {
 	choices       []string
 	cursor        int
-	Selected      string
+	selected      string
 	joinTextInput textinput.Model
+	validated     bool
 	err           error
 }
 
 func initialCreateOrJoinModel() createOrJoinModel {
 	return createOrJoinModel{
-		choices: []string{createNewGame, joinGame},
-		err:     nil,
+		choices:   []string{createNewGame, joinGame},
+		validated: false,
+		err:       nil,
 	}
 }
 
@@ -34,7 +36,7 @@ func (coj createOrJoinModel) Init() tea.Cmd {
 func (coj createOrJoinModel) Update(msg tea.KeyMsg) (createOrJoinModel, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch coj.Selected {
+	switch coj.selected {
 	case "":
 		coj, cmd = coj.handleChoices(msg)
 	case "Join an existing game":
@@ -63,8 +65,8 @@ func (coj createOrJoinModel) handleChoices(msg tea.KeyMsg) (createOrJoinModel, t
 	// The "enter" key and the spacebar (a literal space) toggle
 	// the selected state for the item that the cursor is pointing at.
 	case tea.KeyEnter, tea.KeySpace:
-		coj.Selected = coj.choices[coj.cursor]
-		if coj.Selected == createNewGame {
+		coj.selected = coj.choices[coj.cursor]
+		if coj.selected == createNewGame {
 			cmd = setPhaseCmd(AddPlayerName)
 		} else {
 			ti := textinput.New()
@@ -85,6 +87,7 @@ func (coj createOrJoinModel) handleJoinInput(msg tea.KeyMsg) (createOrJoinModel,
 	var cmd tea.Cmd
 
 	if msg.Type == tea.KeyEnter {
+		coj.validated = true
 		cmd = setPhaseCmd(AddPlayerName)
 	} else {
 		coj.joinTextInput, cmd = coj.joinTextInput.Update(msg)
@@ -94,7 +97,7 @@ func (coj createOrJoinModel) handleJoinInput(msg tea.KeyMsg) (createOrJoinModel,
 
 func (coj createOrJoinModel) View() string {
 	var s string
-	switch coj.Selected {
+	switch coj.selected {
 	case "":
 		s = "Do you want to create or join a game?\n\n"
 
@@ -113,12 +116,18 @@ func (coj createOrJoinModel) View() string {
 
 		// The footer
 		s += "\nPress esc to quit.\n"
+	case createNewGame:
+		s = fmt.Sprintf("Game created with uuid %s\n", "myrandomuuid")
 	case joinGame:
-		s = fmt.Sprintf(
-			"Enter game uuid to join:\n\n %s\n\n%s",
-			coj.joinTextInput.View(),
-			"(esc to quit)",
-		) + "\n"
+		if coj.validated {
+			s = fmt.Sprintf("Game with uuid %s joined\n", coj.joinTextInput.Value())
+		} else {
+			s = fmt.Sprintf(
+				"Enter game uuid to join:\n\n %s\n\n%s",
+				coj.joinTextInput.View(),
+				"(esc to quit)",
+			) + "\n"
+		}
 	}
 	return s
 }

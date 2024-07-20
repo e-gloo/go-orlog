@@ -9,6 +9,7 @@ import (
 
 type addPlayerNameModel struct {
 	textInput textinput.Model
+	validated bool
 	err       error
 }
 
@@ -21,6 +22,7 @@ func initialAddPlayerNameModel() addPlayerNameModel {
 
 	return addPlayerNameModel{
 		textInput: ti,
+		validated: false,
 		err:       nil,
 	}
 }
@@ -33,7 +35,10 @@ func (su addPlayerNameModel) Update(msg tea.KeyMsg) (addPlayerNameModel, tea.Cmd
 	var cmd tea.Cmd
 
 	if msg.Type == tea.KeyEnter {
-		cmd = setPhaseCmd(GameStarting)
+		if su.textInput.Value() != "" {
+			su.validated = true
+			cmd = setPhaseCmd(GameStarting)
+		}
 	} else {
 		su.textInput, cmd = su.textInput.Update(msg)
 	}
@@ -41,10 +46,15 @@ func (su addPlayerNameModel) Update(msg tea.KeyMsg) (addPlayerNameModel, tea.Cmd
 }
 
 func (su addPlayerNameModel) View() string {
-	return fmt.Sprintf(
-		"Enter your player name:\n\n %s\n\n%s",
-		su.textInput.View(),
-		"(esc to quit)",
-	) + "\n"
+	var s string
+	if su.validated {
+		s = fmt.Sprintf("Get ready %s!\n", su.textInput.Value())
+	} else {
+		s = fmt.Sprintf(
+			"Enter your player name:\n\n %s\n\n%s",
+			su.textInput.View(),
+			"(esc to quit)",
+		) + "\n"
+	}
+	return s
 }
-

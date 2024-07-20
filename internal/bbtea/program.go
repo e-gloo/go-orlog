@@ -90,15 +90,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var s string
-	switch m.phase {
-	case ServerConnection:
-		s = m.serverUrl.View()
-	case CreateOrJoinGame:
-		s = m.createOrJoin.View()
-	case AddPlayerName:
-		s = m.addPlayerName.View()
-	case GameStarting:
-		s = fmt.Sprintf("Game is about to start...\n\n%s\n",
+	if m.phase >= ServerConnection {
+		s += m.serverUrl.View()
+	}
+	if m.phase >= CreateOrJoinGame {
+		s += m.createOrJoin.View()
+	}
+	if m.phase >= AddPlayerName {
+		s += m.addPlayerName.View()
+	}
+	if m.phase >= GameStarting {
+		s += fmt.Sprintf("Game is about to start...\n\n%s\n",
 			"(esc to quit)")
 	}
 	return s

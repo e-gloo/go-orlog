@@ -9,6 +9,7 @@ import (
 
 type serverUrlModel struct {
 	textInput textinput.Model
+	validated bool
 	err       error
 }
 
@@ -21,6 +22,7 @@ func initialServerUrlModel() serverUrlModel {
 
 	return serverUrlModel{
 		textInput: ti,
+		validated: false,
 		err:       nil,
 	}
 }
@@ -33,6 +35,10 @@ func (su serverUrlModel) Update(msg tea.KeyMsg) (serverUrlModel, tea.Cmd) {
 	var cmd tea.Cmd
 
 	if msg.Type == tea.KeyEnter {
+		if su.textInput.Value() == "" {
+			su.textInput.SetValue("localhost")
+		}
+		su.validated = true
 		cmd = setPhaseCmd(CreateOrJoinGame)
 	} else {
 		su.textInput, cmd = su.textInput.Update(msg)
@@ -41,9 +47,15 @@ func (su serverUrlModel) Update(msg tea.KeyMsg) (serverUrlModel, tea.Cmd) {
 }
 
 func (su serverUrlModel) View() string {
-	return fmt.Sprintf(
-		"What is the server url (blank for localhost)?\n\n%s\n\n%s",
-		su.textInput.View(),
-		"(esc to quit)",
-	) + "\n"
+	var s string
+	if su.validated {
+		s = fmt.Sprintf("You're connected to %s\n", su.textInput.Value())
+	} else {
+		s = fmt.Sprintf(
+			"What is the server url (blank for localhost)?\n\n%s\n\n%s",
+			su.textInput.View(),
+			"(esc to quit)",
+		) + "\n"
+	}
+	return s
 }
