@@ -5,8 +5,9 @@ import (
 )
 
 type IOHandler interface {
-	DisplayMessage(string)
-	ReadInput(*string) error
+	// DisplayMessage(string)
+	// ReadInput(*string) error
+	Send(any)
 }
 
 type TermHandler struct {

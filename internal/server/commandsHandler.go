@@ -85,12 +85,13 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 	}
 
 	slog.Info("Trying to join...", "uuid", joinGameMessage.Uuid)
+	var commandErrorMessage c.CommandErrorMessage
+
 	value, ok := joinableGames.Load(joinGameMessage.Uuid)
 	if !ok {
 		slog.Debug("Error joining game, uuid not found", "uuid", joinGameMessage.Uuid)
-		var createOrJoinMessage c.CreateOrJoinMessage
-		createOrJoinMessage.Welcome = "Game not found, try again."
-		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &createOrJoinMessage); err != nil {
+		commandErrorMessage.Reason = "Game not found, try again."
+		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &commandErrorMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
@@ -98,7 +99,13 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 
 	game, ok := value.(*g.ServerGame)
 	if !ok {
-		return fmt.Errorf("could not retrieve a valid game")
+		err := fmt.Errorf("could not retrieve a valid game")
+		slog.Debug(err.Error(), "uuid", joinGameMessage.Uuid)
+		commandErrorMessage.Reason = err.Error()
+		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &commandErrorMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+		return err
 	}
 	ch.game = game
 

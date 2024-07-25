@@ -41,7 +41,7 @@ func MessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 	ch := NewCommandHandler(conn)
-	if err := c.SendPacket(conn, c.CreateOrJoin, &c.CreateOrJoinMessage{Welcome: "Welcome to Orlog!"}); err != nil {
+	if err := c.SendPacket(conn, c.CreateOrJoin, &c.CreateOrJoinMessage{}); err != nil {
 		slog.Error("Error sending packet", "err", err)
 		return
 	}

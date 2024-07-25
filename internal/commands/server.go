@@ -18,9 +18,7 @@ const (
 	CommandError    Command = "error"
 )
 
-type CreateOrJoinMessage struct {
-	Welcome string
-}
+type CreateOrJoinMessage struct{}
 
 type CreatedOrJoinedMessage struct {
 	Uuid string

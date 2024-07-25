@@ -41,6 +41,11 @@ tasks:
     cmds:
       - go build -o out/client -v cmd/client/main.go
 
+  build-bbtea:
+    deps: [check-go]
+    cmds:
+      - go build -o out/bbtea -v cmd/bbtea/main.go
+
   run-server:
     deps: [build-server]
     cmds:
@@ -59,6 +64,16 @@ tasks:
     sources:
       - 'internal/**/*.go'
       - 'cmd/client/main.go'
+      - exclude: 'internal/server/**/*.go'
+
+  run-bbtea:
+    deps: [build-bbtea]
+    cmds:
+      - ./out/bbtea --dev
+    watch: true
+    sources:
+      - 'internal/**/*.go'
+      - 'cmd/bbtea/main.go'
       - exclude: 'internal/server/**/*.go'
 
   clean-out:

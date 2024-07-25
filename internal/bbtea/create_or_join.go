@@ -2,17 +2,21 @@ package bbtea
 
 import (
 	"fmt"
+	// "log/slog"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	c "github.com/e-gloo/orlog/internal/client"
+	l "github.com/e-gloo/orlog/internal/client/lobby"
 )
 
 const (
-	createNewGame = "Create a new game"
-	joinGame      = "Join an existing game"
+	createNewGame    = "Create a new game"
+	joinExistingGame = "Join an existing game"
 )
 
 type createOrJoinModel struct {
+	client        c.Client
 	choices       []string
 	cursor        int
 	selected      string
@@ -21,11 +25,11 @@ type createOrJoinModel struct {
 	err           error
 }
 
-func initialCreateOrJoinModel() createOrJoinModel {
+func initialCreateOrJoinModel(client c.Client) createOrJoinModel {
 	return createOrJoinModel{
-		choices:   []string{createNewGame, joinGame},
+		client:    client,
+		choices:   []string{createNewGame, joinExistingGame},
 		validated: false,
-		err:       nil,
 	}
 }
 
@@ -33,15 +37,23 @@ func (coj createOrJoinModel) Init() tea.Cmd {
 	return nil
 }
 
-func (coj createOrJoinModel) Update(msg tea.KeyMsg) (createOrJoinModel, tea.Cmd) {
+func (coj createOrJoinModel) Update(msg tea.Msg) (createOrJoinModel, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch coj.selected {
-	case "":
-		coj, cmd = coj.handleChoices(msg)
-	case "Join an existing game":
-		coj, cmd = coj.handleJoinInput(msg)
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
+			return coj, tea.Quit
+		}
+		switch coj.selected {
+		case "":
+			coj, cmd = coj.handleChoices(msg)
+		case joinExistingGame:
+			coj, cmd = coj.handleJoinInput(msg)
+		}
 	}
+
 	return coj, cmd
 }
 
@@ -67,7 +79,7 @@ func (coj createOrJoinModel) handleChoices(msg tea.KeyMsg) (createOrJoinModel, t
 	case tea.KeyEnter, tea.KeySpace:
 		coj.selected = coj.choices[coj.cursor]
 		if coj.selected == createNewGame {
-			cmd = setPhaseCmd(AddPlayerName)
+			coj.err = coj.client.CreateGame()
 		} else {
 			ti := textinput.New()
 			ti.Focus()
@@ -87,8 +99,7 @@ func (coj createOrJoinModel) handleJoinInput(msg tea.KeyMsg) (createOrJoinModel,
 	var cmd tea.Cmd
 
 	if msg.Type == tea.KeyEnter {
-		coj.validated = true
-		cmd = setPhaseCmd(AddPlayerName)
+		coj.err = coj.client.JoinGame(coj.joinTextInput.Value())
 	} else {
 		coj.joinTextInput, cmd = coj.joinTextInput.Update(msg)
 	}
@@ -97,9 +108,19 @@ func (coj createOrJoinModel) handleJoinInput(msg tea.KeyMsg) (createOrJoinModel,
 
 func (coj createOrJoinModel) View() string {
 	var s string
+
+	if coj.err != nil {
+		s = coj.err.Error() + "\n"
+	}
+
+	lobby := coj.client.GetLobby()
+	if lobby.Phase == l.CreateOrJoin && lobby.Err != "" {
+		s += lobby.Err + "\n"
+	}
+
 	switch coj.selected {
 	case "":
-		s = "Do you want to create or join a game?\n\n"
+		s += "Do you want to create or join a game?\n\n"
 
 		// Iterate over our choices
 		for i, choice := range coj.choices {
@@ -117,10 +138,18 @@ func (coj createOrJoinModel) View() string {
 		// The footer
 		s += "\nPress esc to quit.\n"
 	case createNewGame:
-		s = fmt.Sprintf("Game created with uuid %s\n", "myrandomuuid")
-	case joinGame:
+		if lobby.GameUuid != "" {
+			s += fmt.Sprintf("Game created with uuid %s\n", lobby.GameUuid)
+		} else {
+			s += "Creating game...\n"
+		}
+	case joinExistingGame:
 		if coj.validated {
-			s = fmt.Sprintf("Game with uuid %s joined\n", coj.joinTextInput.Value())
+			if lobby.GameUuid != "" {
+				s += fmt.Sprintf("Game with uuid %s joined\n", lobby.GameUuid)
+			} else {
+				s += fmt.Sprintf("Joining game with uuid %s...\n", coj.joinTextInput.Value())
+			}
 		} else {
 			s = fmt.Sprintf(
 				"Enter game uuid to join:\n\n %s\n\n%s",
