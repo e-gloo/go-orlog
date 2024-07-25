@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// "log/slog"
 	"net/url"
 	"os"
 	"os/signal"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	g "github.com/e-gloo/orlog/internal/client/game"
 	l "github.com/e-gloo/orlog/internal/client/lobby"
 	c "github.com/e-gloo/orlog/internal/commands"
@@ -44,7 +42,6 @@ type client struct {
 func NewClient(serverAddr string) (Client, error) {
 	u := &url.URL{Scheme: "ws", Host: serverAddr, Path: "/connect"}
 	// slog.Info("connecting", "url", u.String())
-	tea.Println("connecting")
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
