@@ -91,7 +91,7 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 	if !ok {
 		slog.Debug("Error joining game, uuid not found", "uuid", joinGameMessage.Uuid)
 		commandErrorMessage.Reason = "Game not found, try again."
-		if err := c.SendPacket(ch.Conn, c.CreateOrJoin, &commandErrorMessage); err != nil {
+		if err := c.SendPacket(ch.Conn, c.CommandError, &commandErrorMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
 		}
 		return nil
