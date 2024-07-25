@@ -61,6 +61,7 @@ func (ch *CommandHandler) handleCreateOrJoin(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 	ch.lobby.Phase = l.CreateOrJoin
+	ch.lobby.Err = ""
 	ch.ioh.Send(l.CreateOrJoin)
 	return nil
 }
@@ -71,6 +72,7 @@ func (ch *CommandHandler) handleCreatedOrJoined(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 	ch.lobby.GameUuid = createdOrJoinedMessage.Uuid
+	ch.lobby.Err = ""
 
 	return nil
 }
@@ -81,6 +83,7 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 	ch.lobby.Phase = l.AddPlayerName
+	ch.lobby.Err = ""
 	ch.ioh.Send(l.AddPlayerName)
 
 	// ch.ioh.DisplayMessage("Enter your name : ")
