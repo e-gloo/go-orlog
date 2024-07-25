@@ -100,6 +100,9 @@ func (coj createOrJoinModel) handleJoinInput(msg tea.KeyMsg) (createOrJoinModel,
 
 	if msg.Type == tea.KeyEnter {
 		coj.err = coj.client.JoinGame(coj.joinTextInput.Value())
+		if coj.err == nil {
+			coj.validated = true
+		}
 	} else {
 		coj.joinTextInput, cmd = coj.joinTextInput.Update(msg)
 	}
@@ -144,7 +147,7 @@ func (coj createOrJoinModel) View() string {
 			s += "Creating game...\n"
 		}
 	case joinExistingGame:
-		if coj.validated {
+		if coj.validated  && lobby.Err == "" {
 			if lobby.GameUuid != "" {
 				s += fmt.Sprintf("Game with uuid %s joined\n", lobby.GameUuid)
 			} else {
