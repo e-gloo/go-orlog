@@ -6,12 +6,6 @@ import (
 	cmn "github.com/e-gloo/orlog/internal/commons"
 )
 
-type Phase int
-
-const (
-	GameStartingPhase Phase = iota
-)
-
 type ClientGame struct {
 	MyUsername string
 	Players    cmn.PlayerMap[*ClientPlayer]

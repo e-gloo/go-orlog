@@ -8,14 +8,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	c "github.com/e-gloo/orlog/internal/client"
-	l "github.com/e-gloo/orlog/internal/client/lobby"
 )
 
 type model struct {
-	client        c.Client
-	serverUrl     serverUrlModel
-	createOrJoin  createOrJoinModel
-	addPlayerName addPlayerNameModel
+	client       c.Client
+	serverUrl    serverUrlModel
+	createOrJoin createOrJoinModel
+	configPlayer configPlayerModel
 }
 
 type errMsg error
@@ -57,7 +56,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	switch m.client.GetState() {
+	switch ph.State() {
 	case c.LobbyState:
 		var newModel tea.Model
 		newModel, cmd = m.handleUpdateLobbyState(msg)
@@ -71,21 +70,22 @@ func (m model) handleUpdateLobbyState(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case l.Phase:
+	case c.Phase:
+		ph.SetPhase(msg)
 		switch msg {
-		case l.CreateOrJoin:
+		case c.CreateOrJoin:
 			m.createOrJoin = initialCreateOrJoinModel(m.client)
 			return m, m.createOrJoin.Init()
-		case l.AddPlayerName:
-			m.addPlayerName = initialAddPlayerNameModel(m.client)
-			return m, m.addPlayerName.Init()
+		case c.ConfigPlayer:
+			m.configPlayer = initialConfigPlayerModel(m.client)
+			return m, m.configPlayer.Init()
 		}
 	default:
-		switch m.client.GetLobby().Phase {
-		case l.CreateOrJoin:
+		switch ph.Phase() {
+		case c.CreateOrJoin:
 			m.createOrJoin, cmd = m.createOrJoin.Update(msg)
-		case l.AddPlayerName:
-			m.addPlayerName, cmd = m.addPlayerName.Update(msg)
+		case c.ConfigPlayer:
+			m.configPlayer, cmd = m.configPlayer.Update(msg)
 		}
 	}
 	return m, cmd
@@ -97,7 +97,7 @@ func (m model) View() string {
 	}
 
 	var s string
-	switch m.client.GetState() {
+	switch ph.State() {
 	case c.LobbyState:
 		s += m.handleViewLobbyState()
 	case c.GameState:
@@ -108,13 +108,13 @@ func (m model) View() string {
 
 func (m model) handleViewLobbyState() string {
 	s := m.serverUrl.View()
-	phase := m.client.GetLobby().Phase
+	phase := ph.Phase()
 
-	if phase >= l.CreateOrJoin {
+	if phase >= c.CreateOrJoin {
 		s += m.createOrJoin.View()
 	}
-	if phase >= l.AddPlayerName {
-		s += m.addPlayerName.View()
+	if phase >= c.ConfigPlayer {
+		s += m.configPlayer.View()
 	}
 	return s
 }

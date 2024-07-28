@@ -10,7 +10,6 @@ import (
 	"time"
 
 	g "github.com/e-gloo/orlog/internal/client/game"
-	l "github.com/e-gloo/orlog/internal/client/lobby"
 	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
@@ -22,21 +21,32 @@ const (
 	GameState
 )
 
+type Phase int
+
+const (
+	CreateOrJoin Phase = iota + 1
+	ConfigPlayer
+	GameStarting
+)
+
 type Client interface {
 	Run(IOHandler) error
+	ServerUrl() string
 	CreateGame() error
 	JoinGame(string) error
+	GameUuid() string
 	AddPlayerName(string) error
-	GetState() State
-	GetLobby() *l.Lobby
-	GetGame() *g.ClientGame
+	Error() string
 }
 
 type client struct {
-	conn  *websocket.Conn
-	lobby *l.Lobby
-	game  *g.ClientGame
-	state State
+	conn       *websocket.Conn
+	game       *g.ClientGame
+	state      State
+	phase      Phase
+	gameUuid   string
+	playerName string
+	err        string
 }
 
 func NewClient(serverAddr string) (Client, error) {
@@ -48,16 +58,14 @@ func NewClient(serverAddr string) (Client, error) {
 		return nil, fmt.Errorf("error connecting to server: %w", err)
 	}
 
-	lobby := &l.Lobby{ServerUrl: u.String()}
-
-	return &client{conn: conn, lobby: lobby, state: LobbyState}, nil
+	return &client{conn: conn, state: LobbyState, phase: CreateOrJoin}, nil
 }
 
 func (cl *client) Run(ioh IOHandler) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	ch := NewCommandHandler(cl.conn, cl.lobby, ioh)
+	ch := NewCommandHandler(cl.conn, cl, ioh)
 
 	defer cl.conn.Close()
 
@@ -108,16 +116,8 @@ func (cl *client) Run(ioh IOHandler) error {
 	}
 }
 
-func (cl *client) GetState() State {
-	return cl.state
-}
-
-func (cl *client) GetLobby() *l.Lobby {
-	return cl.lobby
-}
-
-func (cl *client) GetGame() *g.ClientGame {
-	return cl.game
+func (cl *client) ServerUrl() string {
+	return cl.conn.RemoteAddr().String()
 }
 
 func (cl *client) CreateGame() error {
@@ -138,6 +138,18 @@ func (cl *client) JoinGame(uuid string) error {
 	return err
 }
 
+func (cl *client) GameUuid() string {
+	return cl.gameUuid
+}
+
 func (cl *client) AddPlayerName(name string) error {
 	return nil
+}
+
+func (cl *client) GetGame() *g.ClientGame {
+	return cl.game
+}
+
+func (cl *client) Error() string {
+	return cl.err
 }

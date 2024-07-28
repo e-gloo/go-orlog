@@ -7,24 +7,21 @@ import (
 	// "strconv"
 	// "strings"
 
-	g "github.com/e-gloo/orlog/internal/client/game"
-	l "github.com/e-gloo/orlog/internal/client/lobby"
 	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
 
 type CommandHandler struct {
-	ioh   IOHandler
-	conn  *websocket.Conn
-	lobby *l.Lobby
-	game  *g.ClientGame
+	ioh    IOHandler
+	conn   *websocket.Conn
+	client *client
 }
 
-func NewCommandHandler(conn *websocket.Conn, lobby *l.Lobby, ioh IOHandler) *CommandHandler {
+func NewCommandHandler(conn *websocket.Conn, client *client, ioh IOHandler) *CommandHandler {
 	return &CommandHandler{
-		conn: conn,
-		ioh:  ioh,
-		lobby: lobby,
+		conn:   conn,
+		ioh:    ioh,
+		client: client,
 	}
 }
 
@@ -60,9 +57,8 @@ func (ch *CommandHandler) handleCreateOrJoin(packet *c.Packet) error {
 	if err := c.ParsePacketData(packet, &createOrJoinMessage); err != nil {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
-	ch.lobby.Phase = l.CreateOrJoin
-	ch.lobby.Err = ""
-	ch.ioh.Send(l.CreateOrJoin)
+	ch.client.err = ""
+	ch.ioh.Send(CreateOrJoin)
 	return nil
 }
 
@@ -71,8 +67,8 @@ func (ch *CommandHandler) handleCreatedOrJoined(packet *c.Packet) error {
 	if err := c.ParsePacketData(packet, &createdOrJoinedMessage); err != nil {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
-	ch.lobby.GameUuid = createdOrJoinedMessage.Uuid
-	ch.lobby.Err = ""
+	ch.client.gameUuid = createdOrJoinedMessage.Uuid
+	ch.client.err = ""
 
 	return nil
 }
@@ -82,9 +78,8 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 	if err := c.ParsePacketData(packet, &configurePlayerMessage); err != nil {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
-	ch.lobby.Phase = l.AddPlayerName
-	ch.lobby.Err = ""
-	ch.ioh.Send(l.AddPlayerName)
+	ch.client.err = ""
+	ch.ioh.Send(ConfigPlayer)
 
 	// ch.ioh.DisplayMessage("Enter your name : ")
 	//
@@ -273,11 +268,7 @@ func (ch *CommandHandler) handleErrorCommand(packet *c.Packet) error {
 	}
 
 	// slog.Info("Command did not work", "reason", errorMessage.Reason)
-	if ch.lobby.Phase < l.Game {
-		ch.lobby.Err = errorMessage.Reason
-	} else {
-		// TODO: set game err
-	}
+	ch.client.err = errorMessage.Reason
 	return nil
 }
 

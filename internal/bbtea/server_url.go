@@ -54,8 +54,6 @@ func (su serverUrlModel) Update(msg tea.Msg) (serverUrlModel, tea.Cmd) {
 				return su, cmd
 			}
 			su.validated = true
-			lobby := client.GetLobby()
-			lobby.ServerUrl = su.textInput.Value()
 			cc := ClientConnection{
 				client: client,
 			}

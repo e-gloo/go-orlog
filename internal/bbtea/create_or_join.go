@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	c "github.com/e-gloo/orlog/internal/client"
-	l "github.com/e-gloo/orlog/internal/client/lobby"
 )
 
 const (
@@ -116,9 +115,8 @@ func (coj createOrJoinModel) View() string {
 		s = coj.err.Error() + "\n"
 	}
 
-	lobby := coj.client.GetLobby()
-	if lobby.Phase == l.CreateOrJoin && lobby.Err != "" {
-		s += lobby.Err + "\n"
+	if ph.Phase() == c.CreateOrJoin && coj.client.Error() != "" {
+		s += coj.client.Error() + "\n"
 	}
 
 	switch coj.selected {
@@ -141,15 +139,15 @@ func (coj createOrJoinModel) View() string {
 		// The footer
 		s += "\nPress esc to quit.\n"
 	case createNewGame:
-		if lobby.GameUuid != "" {
-			s += fmt.Sprintf("Game created with uuid %s\n", lobby.GameUuid)
+		if coj.client.GameUuid() != "" {
+			s += fmt.Sprintf("Game created with uuid %s\n", coj.client.GameUuid())
 		} else {
 			s += "Creating game...\n"
 		}
 	case joinExistingGame:
-		if coj.validated  && lobby.Err == "" {
-			if lobby.GameUuid != "" {
-				s += fmt.Sprintf("Game with uuid %s joined\n", lobby.GameUuid)
+		if coj.validated && coj.client.Error() == "" {
+			if coj.client.GameUuid() != "" {
+				s += fmt.Sprintf("Game with uuid %s joined\n", coj.client.GameUuid())
 			} else {
 				s += fmt.Sprintf("Joining game with uuid %s...\n", coj.joinTextInput.Value())
 			}
