@@ -70,11 +70,6 @@ tasks:
     deps: [build-bbtea]
     cmds:
       - ./out/bbtea --dev
-    watch: true
-    sources:
-      - 'internal/**/*.go'
-      - 'cmd/bbtea/main.go'
-      - exclude: 'internal/server/**/*.go'
 
   clean-out:
     cmds:
