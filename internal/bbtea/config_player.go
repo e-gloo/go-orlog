@@ -6,34 +6,33 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	c "github.com/e-gloo/orlog/internal/client"
-	l "github.com/e-gloo/orlog/internal/client/lobby"
 )
 
-type addPlayerNameModel struct {
+type configPlayerModel struct {
 	client    c.Client
 	textInput textinput.Model
 	validated bool
 }
 
-func initialAddPlayerNameModel(client c.Client) addPlayerNameModel {
+func initialConfigPlayerModel(client c.Client) configPlayerModel {
 	ti := textinput.New()
 	ti.Placeholder = ""
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 20
 
-	return addPlayerNameModel{
+	return configPlayerModel{
 		client:    client,
 		textInput: ti,
 		validated: false,
 	}
 }
 
-func (su addPlayerNameModel) Init() tea.Cmd {
+func (su configPlayerModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (su addPlayerNameModel) Update(msg tea.Msg) (addPlayerNameModel, tea.Cmd) {
+func (su configPlayerModel) Update(msg tea.Msg) (configPlayerModel, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -53,12 +52,11 @@ func (su addPlayerNameModel) Update(msg tea.Msg) (addPlayerNameModel, tea.Cmd) {
 	return su, cmd
 }
 
-func (su addPlayerNameModel) View() string {
+func (su configPlayerModel) View() string {
 	var s string
 
-	lobby := su.client.GetLobby()
-	if lobby.Phase == l.AddPlayerName && lobby.Err != "" {
-		s = lobby.Err + "\n"
+	if ph.Phase() == c.ConfigPlayer && su.client.Error() != "" {
+		s = su.client.Error() + "\n"
 	}
 
 	if su.validated {
