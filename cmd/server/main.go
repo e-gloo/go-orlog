@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
-	logging.InitLogger(*dev)
+	logging.InitLogger(*dev, nil, nil)
 
 	// Create and run server
 	srv := server.NewServer(ctx, *addr, *port)
