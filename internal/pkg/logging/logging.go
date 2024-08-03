@@ -7,13 +7,19 @@ import (
 
 var logger *slog.Logger
 
-func InitLogger(development bool) {
+func InitLogger(development bool, fd *os.File, fdErr *os.File) {
+	if fd == nil {
+		fd = os.Stdout
+	}
+	if fdErr == nil {
+		fdErr = os.Stderr
+	}
 	if development {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		logger = slog.New(slog.NewTextHandler(fd, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		}))
 	} else {
-		logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
+		logger = slog.New(slog.NewJSONHandler(fdErr, nil))
 	}
 	slog.SetDefault(logger)
 }
