@@ -9,6 +9,7 @@ const (
 	CreateOrJoin    Command = "create_or_join"
 	CreatedOrJoined Command = "created_or_joined"
 	ConfigurePlayer Command = "configure_player"
+	AskRollDice     Command = "ask_to_roll_dice"
 	DiceRoll        Command = "dice_roll"
 	SelectDice      Command = "select_dice"
 	AskToPlayGod    Command = "ask_to_play_god"
@@ -28,12 +29,18 @@ type ConfigurePlayerMessage struct {
 	Gods []cmn.InitGod
 }
 
+type AskRollDiceMessage struct {
+	Player string
+}
+
 type DiceRollMessage struct {
-	Players cmn.PlayerMap[cmn.DiceState]
+	Player    string
+	DiceState cmn.DiceState
 }
 
 type SelectDiceMessage struct {
-	Turn int
+	Player string
+	Turn   int
 }
 
 type AskToPlayGodMessage struct{}

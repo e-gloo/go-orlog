@@ -4,8 +4,6 @@ package bbtea
 // component library.
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	c "github.com/e-gloo/orlog/internal/client"
 )
@@ -15,6 +13,7 @@ type model struct {
 	serverUrl    serverUrlModel
 	createOrJoin createOrJoinModel
 	configPlayer configPlayerModel
+	game         gameModel
 }
 
 type errMsg error
@@ -43,6 +42,18 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
+			//TODO: close ws connection properly
+			return m, tea.Quit
+		}
+	case c.State:
+		ph.SetState(msg)
+		m.game = initialGameModel(m.client)
+		return m, cmd
+	}
+
 	// handle server url input before creating client with ws connection
 	if m.client == nil {
 		switch msg := msg.(type) {
@@ -56,12 +67,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	var newModel tea.Model
 	switch ph.State() {
 	case c.LobbyState:
-		var newModel tea.Model
 		newModel, cmd = m.handleUpdateLobbyState(msg)
-		m = newModel.(model)
+	case c.GameState:
+		newModel, cmd = m.handleUpdateGameState(msg)
 	}
+	m = newModel.(model)
 
 	return m, cmd
 }
@@ -91,18 +104,33 @@ func (m model) handleUpdateLobbyState(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m model) handleUpdateGameState(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case c.Phase:
+		ph.SetPhase(msg)
+	default:
+		m.game, cmd = m.game.Update(msg)
+	}
+	return m, cmd
+}
+
 func (m model) View() string {
+	s := "\n"
 	if m.client == nil {
-		return m.serverUrl.View()
+		s += m.serverUrl.View()
+		s += "\n(esc to quit)\n"
+		return s
 	}
 
-	var s string
 	switch ph.State() {
 	case c.LobbyState:
 		s += m.handleViewLobbyState()
 	case c.GameState:
 		s += m.handleViewGameState()
 	}
+	s += "\n(esc to quit)\n"
 	return s
 }
 
@@ -120,7 +148,15 @@ func (m model) handleViewLobbyState() string {
 }
 
 func (m model) handleViewGameState() string {
-	return fmt.Sprintf("Game is starting, get ready!\n\n%s\n", "(esc to quit)")
+	var s string
+
+	switch ph.Phase() {
+	case c.GameStarting:
+		s += "Game is starting, get ready!\n"
+	default:
+		s += m.game.View()
+	}
+	return s
 }
 
 func setCmd(cmd Cmd) tea.Cmd {

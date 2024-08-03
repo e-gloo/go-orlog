@@ -41,8 +41,6 @@ func (su serverUrlModel) Update(msg tea.Msg) (serverUrlModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			cmd = tea.Quit
 		case tea.KeyEnter:
 			if su.textInput.Value() == "" {
 				su.textInput.SetValue("localhost:8080")
@@ -74,10 +72,9 @@ func (su serverUrlModel) View() string {
 		s += fmt.Sprintf("You're connected to %s\n", su.textInput.Value())
 	} else {
 		s += fmt.Sprintf(
-			"What is the server url (blank for localhost)?\n\n%s\n\n%s",
+			"What is the server url (blank for localhost)?\n\n%s\n",
 			su.textInput.View(),
-			"(esc to quit)",
-		) + "\n"
+		)
 	}
 	return s
 }

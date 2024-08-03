@@ -5,6 +5,7 @@ import "strconv"
 type ClientFace struct {
 	kind  string
 	magic bool
+	kept  bool
 }
 
 func (f ClientFace) GetKind() string {

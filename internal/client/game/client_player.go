@@ -54,7 +54,7 @@ func (p *ClientPlayer) update(update cmn.UpdateGamePlayer) {
 
 func (p *ClientPlayer) updateDice(update cmn.DiceState) {
 	for i, state := range update {
-		p.dice[i].setFaceId(state.Index)
-		p.dice[i].setKept(state.Kept)
+		p.dice[i].SetFaceId(state.Index)
+		p.dice[i].SetKept(state.Kept)
 	}
 }

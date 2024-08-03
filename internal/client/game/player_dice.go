@@ -24,11 +24,11 @@ func (d *PlayerDie) GetFaceId() int {
 	return d.face
 }
 
-func (d *PlayerDie) setKept(state bool) {
+func (d *PlayerDie) SetKept(state bool) {
 	d.kept = state
 }
 
-func (d *PlayerDie) setFaceId(face int) {
+func (d *PlayerDie) SetFaceId(face int) {
 	d.face = face
 }
 

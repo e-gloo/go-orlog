@@ -2,7 +2,6 @@ package bbtea
 
 import (
 	"fmt"
-	// "log/slog"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -41,10 +40,6 @@ func (coj createOrJoinModel) Update(msg tea.Msg) (createOrJoinModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return coj, tea.Quit
-		}
 		switch coj.selected {
 		case "":
 			coj, cmd = coj.handleChoices(msg)
@@ -83,7 +78,7 @@ func (coj createOrJoinModel) handleChoices(msg tea.KeyMsg) (createOrJoinModel, t
 			ti := textinput.New()
 			ti.Focus()
 			ti.CharLimit = 156
-			ti.Width = 20
+			ti.Width = 256
 			coj.joinTextInput = ti
 			cmd = textinput.Blink
 		}
@@ -137,7 +132,6 @@ func (coj createOrJoinModel) View() string {
 		}
 
 		// The footer
-		s += "\nPress esc to quit.\n"
 	case createNewGame:
 		if coj.client.GameUuid() != "" {
 			s += fmt.Sprintf("Game created with uuid %s\n", coj.client.GameUuid())
@@ -153,10 +147,9 @@ func (coj createOrJoinModel) View() string {
 			}
 		} else {
 			s = fmt.Sprintf(
-				"Enter game uuid to join:\n\n %s\n\n%s",
+				"Enter game uuid to join:\n\n %s\n",
 				coj.joinTextInput.View(),
-				"(esc to quit)",
-			) + "\n"
+			)
 		}
 	}
 	return s

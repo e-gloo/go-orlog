@@ -144,6 +144,15 @@ func (g *ServerGame) GetRollDiceState() cmn.PlayerMap[cmn.DiceState] {
 	return dice
 }
 
+func (g *ServerGame) GetPlayerRollDiceState(username string) cmn.DiceState {
+	dice := make(cmn.DiceState, len(g.Players[username].GetDice()))
+	for die := range g.Players[username].GetDice() {
+		dice[die].Index = g.Players[username].GetDice()[die].GetFaceIndex()
+		dice[die].Kept = g.Players[username].GetDice()[die].IsKept()
+	}
+	return dice
+}
+
 func (g *ServerGame) GetGodsDefinition() []cmn.InitGod {
 	res := make([]cmn.InitGod, len(g.Gods))
 	for i, god := range g.Gods {

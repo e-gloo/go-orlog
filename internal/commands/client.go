@@ -5,6 +5,7 @@ const (
 	CreateGame Command = "create"
 	JoinGame   Command = "join"
 	AddPlayer  Command = "add_player"
+	RollDice   Command = "roll_dice"
 	PlayGod    Command = "play_god"
 	KeepDice   Command = "keep_dice"
 )
@@ -15,6 +16,8 @@ type CreateGameMessage struct {
 type JoinGameMessage struct {
 	Uuid string
 }
+
+type RollDiceMessage struct{}
 
 type AddPlayerMessage struct {
 	Username   string

@@ -10,7 +10,8 @@ import (
 	"time"
 
 	g "github.com/e-gloo/orlog/internal/client/game"
-	c "github.com/e-gloo/orlog/internal/commands"
+	"github.com/e-gloo/orlog/internal/commands"
+	// "github.com/e-gloo/orlog/internal/pkg/logging"
 	"github.com/gorilla/websocket"
 )
 
@@ -27,6 +28,11 @@ const (
 	CreateOrJoin Phase = iota + 1
 	ConfigPlayer
 	GameStarting
+	RollDice
+	WaitingDiceRoll
+	DiceRoll
+	PickDice
+	WaitingDicePick
 )
 
 type Client interface {
@@ -36,6 +42,16 @@ type Client interface {
 	JoinGame(string) error
 	GameUuid() string
 	AddPlayerName(string) error
+	GetGameGods() []g.ClientGod
+	GetMyGods() [3]int
+	GetOpponentGods() [3]int
+	RollDice() error
+	GetGameDice() [6]g.ClientDie
+	GetMe() *g.ClientPlayer
+	GetMyDice() g.PlayerDice
+	ToggleDieState(int)
+	GetOpponent() *g.ClientPlayer
+	GetOpponentDice() g.PlayerDice
 	Error() string
 }
 
@@ -79,7 +95,7 @@ func (cl *client) Run(ioh IOHandler) error {
 				break
 			}
 
-			packet := &c.Packet{}
+			packet := &commands.Packet{}
 			err = json.Unmarshal(message, packet)
 			if err != nil {
 				// slog.Error("Error unmarshalling packet", "err", err)
@@ -121,7 +137,7 @@ func (cl *client) ServerUrl() string {
 }
 
 func (cl *client) CreateGame() error {
-	err := c.SendPacket(cl.conn, c.CreateGame, &c.CreateGameMessage{})
+	err := commands.SendPacket(cl.conn, commands.CreateGame, &commands.CreateGameMessage{})
 
 	if err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
@@ -130,7 +146,7 @@ func (cl *client) CreateGame() error {
 }
 
 func (cl *client) JoinGame(uuid string) error {
-	err := c.SendPacket(cl.conn, c.JoinGame, &c.JoinGameMessage{Uuid: uuid})
+	err := commands.SendPacket(cl.conn, commands.JoinGame, &commands.JoinGameMessage{Uuid: uuid})
 
 	if err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
@@ -143,11 +159,72 @@ func (cl *client) GameUuid() string {
 }
 
 func (cl *client) AddPlayerName(name string) error {
-	return nil
+	err := commands.SendPacket(cl.conn, commands.AddPlayer, &commands.AddPlayerMessage{Username: name, GodIndexes: [3]int{0, 1, 2}})
+	if err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
+	}
+	return err
 }
 
 func (cl *client) GetGame() *g.ClientGame {
 	return cl.game
+}
+
+func (cl *client) GetGameGods() []g.ClientGod {
+	return cl.game.Gods
+}
+
+func (cl *client) GetMyGods() [3]int {
+	me := cl.GetMe()
+	return me.GetGods()
+}
+
+func (cl *client) ToggleDieState(idx int) {
+	me := cl.GetMe()
+	die := me.GetDice()[idx]
+	die.SetKept(!die.IsKept())
+}
+
+func (cl *client) GetOpponentGods() [3]int {
+	opponent := cl.GetOpponent()
+	return opponent.GetGods()
+}
+
+func (cl *client) RollDice() error {
+	err := commands.SendPacket(cl.conn, commands.RollDice, &commands.RollDiceMessage{})
+	if err != nil {
+		return fmt.Errorf("error sending packet: %w", err)
+	}
+	return err
+}
+
+func (cl *client) GetGameDice() [6]g.ClientDie {
+	return cl.game.Dice
+}
+
+func (cl *client) GetMe() *g.ClientPlayer {
+	me := cl.game.MyUsername
+	return cl.game.Players[me]
+}
+
+func (cl *client) GetMyDice() g.PlayerDice {
+	me := cl.GetMe()
+	return me.GetDice()
+}
+
+func (cl *client) GetOpponent() *g.ClientPlayer {
+	me := cl.game.MyUsername
+	for username := range cl.game.Players {
+		if username != me {
+			return cl.game.Players[username]
+		}
+	}
+	return nil
+}
+
+func (cl *client) GetOpponentDice() g.PlayerDice {
+	opponent := cl.GetOpponent()
+	return opponent.GetDice()
 }
 
 func (cl *client) Error() string {

@@ -2,11 +2,14 @@ package client
 
 import (
 	"fmt"
-	"log/slog"
+	// "log/slog"
+
 	// "regexp"
 	// "strconv"
 	// "strings"
 
+	g "github.com/e-gloo/orlog/internal/client/game"
+	"github.com/e-gloo/orlog/internal/commands"
 	c "github.com/e-gloo/orlog/internal/commands"
 	"github.com/gorilla/websocket"
 )
@@ -33,16 +36,18 @@ func (ch *CommandHandler) Handle(packet *c.Packet) error {
 		return ch.handleCreatedOrJoined(packet)
 	case c.ConfigurePlayer:
 		return ch.handleConfigurePlayer(packet)
+	case c.GameStarting:
+		return ch.handleGameStarting(packet)
+	case c.AskRollDice:
+		return ch.handleAskRollDice(packet)
+	case c.DiceRoll:
+		return ch.handleDiceRoll(packet)
+	case c.SelectDice:
+		return ch.handleSelectDice(packet)
 	// case c.TurnFinished:
 	// 	return ch.handleTurnFinished(packet)
-	// case c.GameStarting:
-	// 	return ch.handleGameStarting(packet)
 	// case c.GameFinished:
 	// 	return ch.handleGameFinished(packet)
-	// case c.DiceRoll:
-	// 	return ch.handleDiceRoll(packet)
-	// case c.SelectDice:
-	// 	return ch.handleSelectDice(packet)
 	// case c.AskToPlayGod:
 	// 	return ch.handleAskToPlayGod(packet)
 	case c.CommandError:
@@ -120,6 +125,93 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 	return nil
 }
 
+func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
+	var gameStartingMessage c.GameStartingMessage
+	if err := c.ParsePacketData(packet, &gameStartingMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.client.game = g.NewClientGame(
+		gameStartingMessage.YourUsername,
+		gameStartingMessage.Dice,
+		gameStartingMessage.Gods,
+		gameStartingMessage.Players,
+	)
+
+	ch.ioh.Send(GameState)
+	ch.ioh.Send(GameStarting)
+
+	return nil
+}
+
+func (ch *CommandHandler) handleAskRollDice(packet *c.Packet) error {
+	var askRollDiceMessage commands.AskRollDiceMessage
+	if err := c.ParsePacketData(packet, &askRollDiceMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	if askRollDiceMessage.Player == ch.client.game.MyUsername {
+		ch.ioh.Send(RollDice)
+	} else {
+		ch.ioh.Send(WaitingDiceRoll)
+	}
+	return nil
+}
+
+func (ch *CommandHandler) handleDiceRoll(packet *c.Packet) error {
+	var diceRollMessage c.DiceRollMessage
+	if err := c.ParsePacketData(packet, &diceRollMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.client.game.UpdatePlayerDice(
+		diceRollMessage.Player,
+		diceRollMessage.DiceState,
+	)
+
+	if diceRollMessage.Player == ch.client.game.MyUsername {
+		ch.ioh.Send(DiceRoll)
+	} else {
+		ch.ioh.Send(WaitingDicePick)
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
+	var selectDiceMessage c.SelectDiceMessage
+	if err := c.ParsePacketData(packet, &selectDiceMessage); err != nil {
+		return fmt.Errorf("error parsing packet data: %w", err)
+	}
+
+	ch.ioh.Send(PickDice)
+
+	// ch.ioh.DisplayMessage("Choose your dice to keep (1-6, separated by commas, * to keep all): ")
+	// input := ""
+	// if err := ch.ioh.ReadInput(&input); err != nil {
+	// 	return fmt.Errorf("error while choosing dice: %w", err)
+	// }
+	//
+	// if input == "*" {
+	// 	input = "1,2,3,4,5,6"
+	// }
+	//
+	// if ok, err := regexp.MatchString(`^([1-6],?){0,6}$`, input); !ok || err != nil {
+	// 	return fmt.Errorf("error while validating chosen dice: %w", err)
+	// }
+	//
+	// var keep [6]bool
+	// for i := 0; i < 6; i++ {
+	// 	keep[i] = strings.Contains(input, fmt.Sprintf("%d", i+1))
+	// }
+	//
+	// if err := c.SendPacket(ch.conn, c.KeepDice, &c.KeepDiceMessage{Kept: keep}); err != nil {
+	// 	return fmt.Errorf("error sending packet: %w", err)
+	// }
+
+	return nil
+}
+
 // func (ch *CommandHandler) handleTurnFinished(packet *c.Packet) error {
 // 	var turnFinishedMessage c.TurnFinishedMessage
 // 	if err := c.ParsePacketData(packet, &turnFinishedMessage); err != nil {
@@ -133,23 +225,6 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 // 	return nil
 // }
 //
-// func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
-// 	var gameStartingMessage c.GameStartingMessage
-// 	if err := c.ParsePacketData(packet, &gameStartingMessage); err != nil {
-// 		return fmt.Errorf("error parsing packet data: %w", err)
-// 	}
-//
-// 	ch.game = g.NewClientGame(
-// 		gameStartingMessage.YourUsername,
-// 		gameStartingMessage.Dice,
-// 		gameStartingMessage.Gods,
-// 		gameStartingMessage.Players,
-// 	)
-//
-// 	ch.ioh.DisplayMessage(ch.game.MyUsername + ": GET READY FOR VALHALLA !")
-//
-// 	return nil
-// }
 //
 // func (ch *CommandHandler) handleGameFinished(packet *c.Packet) error {
 // 	var gameFinishedMessage c.GameFinishedMessage
@@ -162,54 +237,7 @@ func (ch *CommandHandler) handleConfigurePlayer(packet *c.Packet) error {
 // 	return nil
 // }
 //
-// func (ch *CommandHandler) handleDiceRoll(packet *c.Packet) error {
-// 	var diceRollMessage c.DiceRollMessage
-// 	if err := c.ParsePacketData(packet, &diceRollMessage); err != nil {
-// 		return fmt.Errorf("error parsing packet data: %w", err)
-// 	}
 //
-// 	ch.game.UpdatePlayersDice(
-// 		diceRollMessage.Players,
-// 	)
-//
-// 	ch.ioh.DisplayMessage(
-// 		ch.game.FormatGame(),
-// 	)
-//
-// 	return nil
-// }
-//
-// func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
-// 	var selectDiceMessage c.SelectDiceMessage
-// 	if err := c.ParsePacketData(packet, &selectDiceMessage); err != nil {
-// 		return fmt.Errorf("error parsing packet data: %w", err)
-// 	}
-//
-// 	ch.ioh.DisplayMessage("Choose your dice to keep (1-6, separated by commas, * to keep all): ")
-// 	input := ""
-// 	if err := ch.ioh.ReadInput(&input); err != nil {
-// 		return fmt.Errorf("error while choosing dice: %w", err)
-// 	}
-//
-// 	if input == "*" {
-// 		input = "1,2,3,4,5,6"
-// 	}
-//
-// 	if ok, err := regexp.MatchString(`^([1-6],?){0,6}$`, input); !ok || err != nil {
-// 		return fmt.Errorf("error while validating chosen dice: %w", err)
-// 	}
-//
-// 	var keep [6]bool
-// 	for i := 0; i < 6; i++ {
-// 		keep[i] = strings.Contains(input, fmt.Sprintf("%d", i+1))
-// 	}
-//
-// 	if err := c.SendPacket(ch.conn, c.KeepDice, &c.KeepDiceMessage{Kept: keep}); err != nil {
-// 		return fmt.Errorf("error sending packet: %w", err)
-// 	}
-//
-// 	return nil
-// }
 //
 // func (ch *CommandHandler) handleAskToPlayGod(packet *c.Packet) error {
 // 	var askToPlayGodMessage c.AskToPlayGodMessage
@@ -273,6 +301,6 @@ func (ch *CommandHandler) handleErrorCommand(packet *c.Packet) error {
 }
 
 func (ch *CommandHandler) handleDefaultCase(command c.Command) error {
-	slog.Warn("Server sent an unknown command", "command", command)
+	// slog.Warn("Server sent an unknown command", "command", command)
 	return nil
 }

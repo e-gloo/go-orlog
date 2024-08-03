@@ -99,6 +99,10 @@ func (cg *ClientGame) UpdatePlayersDice(update cmn.PlayerMap[cmn.DiceState]) {
 	}
 }
 
+func (cg *ClientGame) UpdatePlayerDice(username string, dice cmn.DiceState) {
+	cg.Players[username].updateDice(dice)
+}
+
 func (cg *ClientGame) GetOpponentName() string {
 	for name := range cg.Players {
 		if name != cg.MyUsername {

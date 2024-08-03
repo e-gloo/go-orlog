@@ -38,11 +38,10 @@ func (su configPlayerModel) Update(msg tea.Msg) (configPlayerModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return su, tea.Quit
 		case tea.KeyEnter:
 			if su.textInput.Value() != "" {
 				su.validated = true
+				su.client.AddPlayerName(su.textInput.Value())
 			}
 		default:
 			su.textInput, cmd = su.textInput.Update(msg)
@@ -57,16 +56,20 @@ func (su configPlayerModel) View() string {
 
 	if ph.Phase() == c.ConfigPlayer && su.client.Error() != "" {
 		s = su.client.Error() + "\n"
+		s += fmt.Sprintf(
+			"Enter your player name:\n\n %s\n",
+			su.textInput.View(),
+		)
+		return s
 	}
 
 	if su.validated {
-		s = fmt.Sprintf("Get ready %s!\n", su.textInput.Value())
+		s = fmt.Sprintf("Get ready %s, the game is starting soon!\n", su.textInput.Value())
 	} else {
 		s = fmt.Sprintf(
-			"Enter your player name:\n\n %s\n\n%s",
+			"Enter your player name:\n\n %s\n",
 			su.textInput.View(),
-			"(esc to quit)",
-		) + "\n"
+		)
 	}
 	return s
 }
