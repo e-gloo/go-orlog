@@ -201,12 +201,11 @@ func (ch *CommandHandler) handleStartingGame() error {
 }
 
 func (ch *CommandHandler) handleRollDice() error {
-	firstUsername := ch.game.PlayersOrder[0]
-	ch.game.Players[firstUsername].RollDice()
+	ch.game.Players[ch.Username].RollDice()
 
 	var diceRollMessage c.DiceRollMessage
-	diceRollMessage.DiceState = ch.game.GetPlayerRollDiceState(firstUsername)
-	diceRollMessage.Player = firstUsername
+	diceRollMessage.DiceState = ch.game.GetPlayerRollDiceState(ch.Username)
+	diceRollMessage.Player = ch.Username
 	for u := range ch.game.Players {
 		if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &diceRollMessage); err != nil {
 			return fmt.Errorf("error sending packet: %w", err)
@@ -215,8 +214,11 @@ func (ch *CommandHandler) handleRollDice() error {
 
 	var selectDiceMessage c.SelectDiceMessage
 	selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-	if err := c.SendPacket(ch.game.Players[firstUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
-		return fmt.Errorf("error sending packet: %w", err)
+	selectDiceMessage.Player = ch.Username
+	for u := range ch.game.Players {
+		if err := c.SendPacket(ch.game.Players[u].Conn, c.SelectDice, &selectDiceMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
 	}
 
 	// ch.players[firstUsername].ExpectedCommands = []c.Command{c.KeepDice}
@@ -233,48 +235,73 @@ func (ch *CommandHandler) handleKeepDice(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	// for dice_idx, dice_kept := range message.Kept {
-	// 	if dice_kept {
-	// 		ch.game.Players[ch.Username].GetDice()[dice_idx].Keep()
-	// 	} else {
-	// 		ch.game.Players[ch.Username].GetDice()[dice_idx].Unkeep()
-	// 	}
-	// }
+	for dice_idx, dice_kept := range message.Kept {
+		if dice_kept {
+			ch.game.Players[ch.Username].GetDice()[dice_idx].Keep()
+		} else {
+			ch.game.Players[ch.Username].GetDice()[dice_idx].Unkeep()
+		}
+	}
 	//
-	// if ch.game.Rolls >= 4 {
-	// 	for u := range ch.game.Players {
-	// 		ch.game.Players[u].RollDice()
-	// 	}
-	//
-	// 	var askToPlayGodMessage c.AskToPlayGodMessage
-	// 	if err := c.SendPacket(ch.game.Players[ch.game.PlayersOrder[0]].Conn, c.AskToPlayGod, &askToPlayGodMessage); err != nil {
-	// 		return fmt.Errorf("error sending packet: %w", err)
-	// 	}
-	// } else {
-	// 	otherUsername := ch.game.GetOpponentName(ch.Username)
-	//
-	// 	ch.game.Players[otherUsername].RollDice()
-	//
-	// 	var rollDiceMessage c.DiceRollMessage
-	// 	rollDiceMessage.Players = ch.game.GetRollDiceState()
-	//
-	// 	for u := range ch.game.Players {
-	// 		if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &rollDiceMessage); err != nil {
-	// 			return fmt.Errorf("error sending packet: %w", err)
-	// 		}
-	// 	}
-	//
-	// 	var selectDiceMessage c.SelectDiceMessage
-	// 	selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
-	// 	if err := c.SendPacket(ch.game.Players[otherUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
-	// 		return fmt.Errorf("error sending packet: %w", err)
-	// 	}
-	//
-	// 	// ch.players[ch.Username].ExpectedCommands = []c.Command{}
-	// 	// ch.players[otherUsername].ExpectedCommands = []c.Command{c.KeepDice}
-	//
-	// 	ch.game.Rolls++
-	// }
+	var diceStateMessage c.DiceStateMessage
+	diceStateMessage.DiceState = ch.game.GetRollDiceState()
+	for u := range ch.game.Players {
+		if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceState, &diceStateMessage); err != nil {
+			return fmt.Errorf("error sending packet: %w", err)
+		}
+	}
+
+	if ch.game.Rolls >= 4 {
+		for u := range ch.game.Players {
+			ch.game.Players[u].RollDice()
+
+		}
+
+		var diceStateMessage c.DiceStateMessage
+		diceStateMessage.DiceState = ch.game.GetRollDiceState()
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceState, &diceStateMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		// var askToPlayGodMessage c.AskToPlayGodMessage
+		// if err := c.SendPacket(ch.game.Players[ch.game.PlayersOrder[0]].Conn, c.AskToPlayGod, &askToPlayGodMessage); err != nil {
+		// 	return fmt.Errorf("error sending packet: %w", err)
+		// }
+	} else {
+		otherUsername := ch.game.GetOpponentName(ch.Username)
+
+		var askRollDiceMessage c.AskRollDiceMessage
+		askRollDiceMessage.Player = otherUsername
+		for u := range ch.game.Players {
+			if err := c.SendPacket(ch.game.Players[u].Conn, c.AskRollDice, &askRollDiceMessage); err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
+		}
+
+		// ch.game.Players[otherUsername].RollDice()
+		//
+		// var rollDiceMessage c.DiceRollMessage
+		// rollDiceMessage.Players = ch.game.GetRollDiceState()
+		//
+		// for u := range ch.game.Players {
+		// 	if err := c.SendPacket(ch.game.Players[u].Conn, c.DiceRoll, &rollDiceMessage); err != nil {
+		// 		return fmt.Errorf("error sending packet: %w", err)
+		// 	}
+		// }
+		//
+		// var selectDiceMessage c.SelectDiceMessage
+		// selectDiceMessage.Turn = int(math.Ceil(float64(ch.game.Rolls) / 2))
+		// if err := c.SendPacket(ch.game.Players[otherUsername].Conn, c.SelectDice, &selectDiceMessage); err != nil {
+		// 	return fmt.Errorf("error sending packet: %w", err)
+		// }
+
+		// ch.players[ch.Username].ExpectedCommands = []c.Command{}
+		// ch.players[otherUsername].ExpectedCommands = []c.Command{c.KeepDice}
+
+		// ch.game.Rolls++
+	}
 	//
 	return nil
 }

@@ -44,6 +44,8 @@ func (ch *CommandHandler) Handle(packet *c.Packet) error {
 		return ch.handleDiceRoll(packet)
 	case c.SelectDice:
 		return ch.handleSelectDice(packet)
+	case c.DiceState:
+		return ch.handleDiceState(packet)
 	// case c.TurnFinished:
 	// 	return ch.handleTurnFinished(packet)
 	// case c.GameFinished:
@@ -171,10 +173,7 @@ func (ch *CommandHandler) handleDiceRoll(packet *c.Packet) error {
 
 	if diceRollMessage.Player == ch.client.game.MyUsername {
 		ch.ioh.Send(DiceRoll)
-	} else {
-		ch.ioh.Send(WaitingDicePick)
 	}
-
 	return nil
 }
 
@@ -184,7 +183,11 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	ch.ioh.Send(PickDice)
+	if selectDiceMessage.Player == ch.client.game.MyUsername {
+		ch.ioh.Send(PickDice)
+	} else {
+		ch.ioh.Send(WaitingDicePick)
+	}
 
 	// ch.ioh.DisplayMessage("Choose your dice to keep (1-6, separated by commas, * to keep all): ")
 	// input := ""
@@ -208,6 +211,17 @@ func (ch *CommandHandler) handleSelectDice(packet *c.Packet) error {
 	// if err := c.SendPacket(ch.conn, c.KeepDice, &c.KeepDiceMessage{Kept: keep}); err != nil {
 	// 	return fmt.Errorf("error sending packet: %w", err)
 	// }
+
+	return nil
+}
+
+func (ch *CommandHandler) handleDiceState(packet *c.Packet) error {
+	var diceStateMessage c.DiceStateMessage
+	if err := c.ParsePacketData(packet, &diceStateMessage); err != nil {
+		return fmt.Errorf("error parsing data: %w", err)
+	}
+
+	ch.client.game.UpdatePlayersDice(diceStateMessage.DiceState)
 
 	return nil
 }

@@ -10,10 +10,10 @@ import (
 
 type model struct {
 	client       c.Client
-	serverUrl    serverUrlModel
-	createOrJoin createOrJoinModel
-	configPlayer configPlayerModel
-	game         gameModel
+	serverUrl    tea.Model
+	createOrJoin tea.Model
+	configPlayer tea.Model
+	game         tea.Model
 }
 
 type errMsg error
@@ -67,14 +67,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	var newModel tea.Model
 	switch ph.State() {
 	case c.LobbyState:
+		var newModel tea.Model
 		newModel, cmd = m.handleUpdateLobbyState(msg)
+		m = newModel.(model)
 	case c.GameState:
-		newModel, cmd = m.handleUpdateGameState(msg)
+		m.game, cmd = m.game.Update(msg)
 	}
-	m = newModel.(model)
 
 	return m, cmd
 }

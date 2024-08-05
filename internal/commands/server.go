@@ -12,6 +12,7 @@ const (
 	AskRollDice     Command = "ask_to_roll_dice"
 	DiceRoll        Command = "dice_roll"
 	SelectDice      Command = "select_dice"
+	DiceState       Command = "dice_state"
 	AskToPlayGod    Command = "ask_to_play_god"
 	TurnFinished    Command = "turn_finished"
 	GameStarting    Command = "game_starting"
@@ -41,6 +42,10 @@ type DiceRollMessage struct {
 type SelectDiceMessage struct {
 	Player string
 	Turn   int
+}
+
+type DiceStateMessage struct {
+	DiceState cmn.PlayerMap[cmn.DiceState]
 }
 
 type AskToPlayGodMessage struct{}

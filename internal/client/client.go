@@ -52,6 +52,7 @@ type Client interface {
 	ToggleDieState(int)
 	GetOpponent() *g.ClientPlayer
 	GetOpponentDice() g.PlayerDice
+	KeepDice() error
 	Error() string
 }
 
@@ -225,6 +226,20 @@ func (cl *client) GetOpponent() *g.ClientPlayer {
 func (cl *client) GetOpponentDice() g.PlayerDice {
 	opponent := cl.GetOpponent()
 	return opponent.GetDice()
+}
+
+func (cl *client) KeepDice() error {
+	var keepDiceMessage commands.KeepDiceMessage
+	dice := cl.GetMe().GetDice()
+	
+	for idx := range dice {
+		keepDiceMessage.Kept[idx] = dice[idx].IsKept()
+	}
+
+	if err := commands.SendPacket(cl.conn, commands.KeepDice, &keepDiceMessage); err != nil {
+		return fmt.Errorf("Error sending packet: %w", err)
+	}
+	return nil
 }
 
 func (cl *client) Error() string {

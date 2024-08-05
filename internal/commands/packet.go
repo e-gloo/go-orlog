@@ -9,7 +9,7 @@ import (
 )
 
 type Message interface {
-	CreatedOrJoinedMessage | CreateOrJoinMessage | ConfigurePlayerMessage | AskRollDiceMessage | RollDiceMessage | DiceRollMessage | SelectDiceMessage | AskToPlayGodMessage | TurnFinishedMessage | GameStartingMessage | GameFinishedMessage | CreateGameMessage | JoinGameMessage | AddPlayerMessage | PlayGodMessage | KeepDiceMessage | CommandErrorMessage
+	CreatedOrJoinedMessage | CreateOrJoinMessage | ConfigurePlayerMessage | AskRollDiceMessage | RollDiceMessage | DiceRollMessage | SelectDiceMessage | DiceStateMessage | AskToPlayGodMessage | TurnFinishedMessage | GameStartingMessage | GameFinishedMessage | CreateGameMessage | JoinGameMessage | AddPlayerMessage | PlayGodMessage | KeepDiceMessage | CommandErrorMessage
 }
 
 type Command string

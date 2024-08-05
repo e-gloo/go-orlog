@@ -23,7 +23,7 @@ type createOrJoinModel struct {
 	err           error
 }
 
-func initialCreateOrJoinModel(client c.Client) createOrJoinModel {
+func initialCreateOrJoinModel(client c.Client) tea.Model {
 	return createOrJoinModel{
 		client:    client,
 		choices:   []string{createNewGame, joinExistingGame},
@@ -35,7 +35,7 @@ func (coj createOrJoinModel) Init() tea.Cmd {
 	return nil
 }
 
-func (coj createOrJoinModel) Update(msg tea.Msg) (createOrJoinModel, tea.Cmd) {
+func (coj createOrJoinModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {

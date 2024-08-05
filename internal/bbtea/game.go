@@ -15,7 +15,7 @@ type gameModel struct {
 	client       c.Client
 }
 
-func initialGameModel(client c.Client) gameModel {
+func initialGameModel(client c.Client) tea.Model {
 	return gameModel{
 		opponentHUD:  initalHudModel(client, false),
 		opponentDice: initialDiceModel(client, 6, false),
@@ -29,13 +29,23 @@ func (gm gameModel) Init() tea.Cmd {
 	return nil
 }
 
-func (gm gameModel) Update(msg tea.Msg) (gameModel, tea.Cmd) {
+func (gm gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch ph.Phase() {
-	case c.RollDice, c.PickDice:
-		gm.playerDice, cmd = gm.playerDice.Update(msg)
+	switch msg := msg.(type) {
+	case c.Phase:
+		ph.SetPhase(msg)
+		switch msg {
+		case c.DiceRoll:
+			gm.playerDice.validated = false
+		}
+	default:
+		switch ph.Phase() {
+		case c.RollDice, c.PickDice:
+			gm.playerDice, cmd = gm.playerDice.Update(msg)
+		}
 	}
+
 	return gm, cmd
 }
 

@@ -14,7 +14,7 @@ type configPlayerModel struct {
 	validated bool
 }
 
-func initialConfigPlayerModel(client c.Client) configPlayerModel {
+func initialConfigPlayerModel(client c.Client) tea.Model {
 	ti := textinput.New()
 	ti.Placeholder = ""
 	ti.Focus()
@@ -32,7 +32,7 @@ func (su configPlayerModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (su configPlayerModel) Update(msg tea.Msg) (configPlayerModel, tea.Cmd) {
+func (su configPlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {

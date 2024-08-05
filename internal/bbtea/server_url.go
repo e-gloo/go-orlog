@@ -18,7 +18,7 @@ type ClientConnection struct {
 	client c.Client
 }
 
-func initialServerUrlModel() serverUrlModel {
+func initialServerUrlModel() tea.Model {
 	ti := textinput.New()
 	ti.Placeholder = "localhost"
 	ti.Focus()
@@ -35,7 +35,7 @@ func (su serverUrlModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (su serverUrlModel) Update(msg tea.Msg) (serverUrlModel, tea.Cmd) {
+func (su serverUrlModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {

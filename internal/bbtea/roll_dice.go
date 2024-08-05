@@ -23,6 +23,7 @@ var baseDieStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.RoundedBorder())
 
 var baseDieBoxStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.ThickBorder()).BorderBottom(true).
 	MarginLeft(1).
 	Align(lipgloss.Center)
 
@@ -66,6 +67,8 @@ func (dm diceModel) Update(msg tea.Msg) (diceModel, tea.Cmd) {
 				}
 			case tea.KeySpace:
 				dm.client.ToggleDieState(dm.cursor)
+			case tea.KeyEnter:
+				dm.client.KeepDice()
 			}
 		}
 	}
@@ -104,7 +107,7 @@ func (dm diceModel) View() string {
 
 		dieBoxStyle := baseDieBoxStyle
 		if dice[idx].IsKept() {
-			dieBoxStyle = dieBoxStyle.BorderStyle(lipgloss.ThickBorder()).BorderBottom(true).BorderForeground(lipgloss.Color("#05c11e"))
+			dieBoxStyle = dieBoxStyle.BorderForeground(lipgloss.Color("#05c11e"))
 		}
 
 		styledDice = append(styledDice, dieBoxStyle.Render(fmt.Sprintf("%s\n%s", dieStyle.Render(face.GetKind()), selector)))
@@ -122,6 +125,9 @@ func (dm diceModel) View() string {
 
 	if ph.Phase() == c.WaitingDiceRoll && !dm.myDice {
 		s += "Waiting for other player to roll dice...\n"
+	}
+	if ph.Phase() == c.WaitingDicePick && !dm.myDice {
+		s += "Waiting for other player to pick their dice...\n"
 	}
 
 	return s
