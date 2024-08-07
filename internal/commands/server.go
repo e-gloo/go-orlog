@@ -24,6 +24,8 @@ type CreateOrJoinMessage struct{}
 
 type CreatedOrJoinedMessage struct {
 	Uuid string
+	Dice         []cmn.InitGameDie
+	Gods         []cmn.InitGod
 }
 
 type ConfigurePlayerMessage struct {
@@ -57,8 +59,6 @@ type TurnFinishedMessage struct {
 
 type GameStartingMessage struct {
 	YourUsername string
-	Dice         []cmn.InitGameDie
-	Gods         []cmn.InitGod
 	Players      cmn.PlayerMap[cmn.InitGamePlayer]
 }
 

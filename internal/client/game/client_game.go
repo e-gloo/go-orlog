@@ -13,24 +13,21 @@ type ClientGame struct {
 	Gods       []ClientGod
 }
 
-func NewClientGame(
-	playerUsername string,
-	initGameDice []cmn.InitGameDie,
-	initGameGods []cmn.InitGod,
-	initPlayers cmn.PlayerMap[cmn.InitGamePlayer],
-) *ClientGame {
+func NewClientGame(initGameDice []cmn.InitGameDie, initGameGods []cmn.InitGod) *ClientGame {
+	return &ClientGame{
+		Gods: mapGameGods(initGameGods),
+		Dice: mapGameDice(initGameDice),
+	}
+}
+
+func (g *ClientGame) StartGame(playerUsername string, initPlayers cmn.PlayerMap[cmn.InitGamePlayer]) {
 	players := make(cmn.PlayerMap[*ClientPlayer], 2)
 
 	for u, p := range initPlayers {
 		players[u] = NewClientPlayer(p)
 	}
-
-	return &ClientGame{
-		MyUsername: playerUsername,
-		Players:    players,
-		Gods:       mapGameGods(initGameGods),
-		Dice:       mapGameDice(initGameDice),
-	}
+	g.MyUsername = playerUsername
+	g.Players = players
 }
 
 func mapGameDice(initDice []cmn.InitGameDie) [6]ClientDie {

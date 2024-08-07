@@ -108,7 +108,7 @@ func (g *ServerGame) GetOpponentName(you string) string {
 	return ""
 }
 
-func (g *ServerGame) GetStartingDefinition() (cmn.PlayerMap[cmn.InitGamePlayer], []cmn.InitGameDie) {
+func (g *ServerGame) GetStartingDefinition() cmn.PlayerMap[cmn.InitGamePlayer] {
 	players := make(cmn.PlayerMap[cmn.InitGamePlayer], 2)
 	for u := range g.Players {
 		players[u] = cmn.InitGamePlayer{
@@ -117,19 +117,7 @@ func (g *ServerGame) GetStartingDefinition() (cmn.PlayerMap[cmn.InitGamePlayer],
 			GodIndexes: g.Players[u].GetGods(),
 		}
 	}
-
-	dice := make([]cmn.InitGameDie, 6)
-	for i := 0; i < 6; i++ {
-		dice[i].Faces = make([]cmn.InitGameDieFace, 6)
-		for j := 0; j < 6; j++ {
-			dice[i].Faces[j] = cmn.InitGameDieFace{
-				Kind:  g.Dice[i].GetFaces()[j].GetKind(),
-				Magic: g.Dice[i].GetFaces()[j].IsMagic(),
-			}
-		}
-	}
-
-	return players, dice
+	return players
 }
 
 func (g *ServerGame) GetRollDiceState() cmn.PlayerMap[cmn.DiceState] {
@@ -149,6 +137,20 @@ func (g *ServerGame) GetPlayerRollDiceState(username string) cmn.DiceState {
 	for die := range g.Players[username].GetDice() {
 		dice[die].Index = g.Players[username].GetDice()[die].GetFaceIndex()
 		dice[die].Kept = g.Players[username].GetDice()[die].IsKept()
+	}
+	return dice
+}
+
+func (g *ServerGame) GetDiceDefinition() []cmn.InitGameDie {
+	dice := make([]cmn.InitGameDie, 6)
+	for i := 0; i < 6; i++ {
+		dice[i].Faces = make([]cmn.InitGameDieFace, 6)
+		for j := 0; j < 6; j++ {
+			dice[i].Faces[j] = cmn.InitGameDieFace{
+				Kind:  g.Dice[i].GetFaces()[j].GetKind(),
+				Magic: g.Dice[i].GetFaces()[j].IsMagic(),
+			}
+		}
 	}
 	return dice
 }

@@ -75,6 +75,7 @@ func (ch *CommandHandler) handleCreatedOrJoined(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 	ch.client.gameUuid = createdOrJoinedMessage.Uuid
+	ch.client.game = g.NewClientGame(createdOrJoinedMessage.Dice, createdOrJoinedMessage.Gods)
 	ch.client.err = ""
 
 	return nil
@@ -133,12 +134,7 @@ func (ch *CommandHandler) handleGameStarting(packet *c.Packet) error {
 		return fmt.Errorf("error parsing packet data: %w", err)
 	}
 
-	ch.client.game = g.NewClientGame(
-		gameStartingMessage.YourUsername,
-		gameStartingMessage.Dice,
-		gameStartingMessage.Gods,
-		gameStartingMessage.Players,
-	)
+	ch.client.game.StartGame(gameStartingMessage.YourUsername, gameStartingMessage.Players)
 
 	ch.ioh.Send(GameState)
 	ch.ioh.Send(GameStarting)

@@ -67,6 +67,8 @@ func (ch *CommandHandler) handleCreateGame() error {
 
 	var createdOrJoinedMessage c.CreatedOrJoinedMessage
 	createdOrJoinedMessage.Uuid = game.Uuid
+	createdOrJoinedMessage.Gods = ch.game.GetGodsDefinition()
+	createdOrJoinedMessage.Dice = ch.game.GetDiceDefinition()
 	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &createdOrJoinedMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
@@ -117,6 +119,8 @@ func (ch *CommandHandler) handleJoinGame(packet *c.Packet) error {
 
 	var createdOrJoinedMessage c.CreatedOrJoinedMessage
 	createdOrJoinedMessage.Uuid = joinGameMessage.Uuid
+	createdOrJoinedMessage.Gods = ch.game.GetGodsDefinition()
+	createdOrJoinedMessage.Dice = ch.game.GetDiceDefinition()
 	if err := c.SendPacket(ch.Conn, c.CreatedOrJoined, &createdOrJoinedMessage); err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
@@ -175,8 +179,7 @@ func (ch *CommandHandler) handleStartingGame() error {
 	slog.Info("Game is starting...")
 
 	var gameStartingMessage c.GameStartingMessage
-	gameStartingMessage.Players, gameStartingMessage.Dice = ch.game.GetStartingDefinition()
-	gameStartingMessage.Gods = ch.game.GetGodsDefinition()
+	gameStartingMessage.Players = ch.game.GetStartingDefinition()
 	for u := range ch.game.Players {
 		gameStartingMessage.YourUsername = u
 		if err := c.SendPacket(ch.game.Players[u].Conn, c.GameStarting, &gameStartingMessage); err != nil {

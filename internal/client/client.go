@@ -41,7 +41,7 @@ type Client interface {
 	CreateGame() error
 	JoinGame(string) error
 	GameUuid() string
-	AddPlayerName(string) error
+	AddPlayerName(string, [3]int) error
 	GetGameGods() []g.ClientGod
 	GetMyGods() [3]int
 	GetOpponentGods() [3]int
@@ -159,8 +159,8 @@ func (cl *client) GameUuid() string {
 	return cl.gameUuid
 }
 
-func (cl *client) AddPlayerName(name string) error {
-	err := commands.SendPacket(cl.conn, commands.AddPlayer, &commands.AddPlayerMessage{Username: name, GodIndexes: [3]int{0, 1, 2}})
+func (cl *client) AddPlayerName(name string, gods [3]int) error {
+	err := commands.SendPacket(cl.conn, commands.AddPlayer, &commands.AddPlayerMessage{Username: name, GodIndexes: gods})
 	if err != nil {
 		return fmt.Errorf("error sending packet: %w", err)
 	}
