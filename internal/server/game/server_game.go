@@ -114,6 +114,7 @@ func (g *ServerGame) GetStartingDefinition() cmn.PlayerMap[cmn.InitGamePlayer] {
 		players[u] = cmn.InitGamePlayer{
 			Username:   u,
 			Health:     g.Players[u].GetHealth(),
+			Token:      g.Players[u].GetTokens(),
 			GodIndexes: g.Players[u].GetGods(),
 		}
 	}

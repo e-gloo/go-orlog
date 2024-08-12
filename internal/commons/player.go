@@ -3,6 +3,7 @@ package commons
 type InitGamePlayer struct {
 	Username   string
 	Health     int
+	Token      int
 	GodIndexes [3]int
 }
 

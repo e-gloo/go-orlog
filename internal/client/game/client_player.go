@@ -21,7 +21,7 @@ func NewClientPlayer(init cmn.InitGamePlayer) *ClientPlayer {
 	return &ClientPlayer{
 		username: init.Username,
 		health:   init.Health,
-		tokens:   0,
+		tokens:   init.Token,
 		dice:     dice,
 		gods:     init.GodIndexes,
 	}
