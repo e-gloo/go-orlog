@@ -33,6 +33,8 @@ const (
 	DiceRoll
 	PickDice
 	WaitingDicePick
+	SelectGod
+	WaitingGodSelection
 )
 
 type Client interface {
@@ -53,6 +55,7 @@ type Client interface {
 	GetOpponent() *g.ClientPlayer
 	GetOpponentDice() g.PlayerDice
 	KeepDice() error
+	PlayGod(int, int) error
 	Error() string
 }
 
@@ -237,6 +240,18 @@ func (cl *client) KeepDice() error {
 	}
 
 	if err := commands.SendPacket(cl.conn, commands.KeepDice, &keepDiceMessage); err != nil {
+		return fmt.Errorf("Error sending packet: %w", err)
+	}
+	return nil
+}
+
+func (cl *client) PlayGod(god int, level int) error {
+	playGodMessage := commands.PlayGodMessage{
+		GodIndex: god,
+		GodLevel: level,
+	}
+	
+	if err := commands.SendPacket(cl.conn, commands.PlayGod, &playGodMessage); err != nil {
 		return fmt.Errorf("Error sending packet: %w", err)
 	}
 	return nil

@@ -24,8 +24,8 @@ type CreateOrJoinMessage struct{}
 
 type CreatedOrJoinedMessage struct {
 	Uuid string
-	Dice         []cmn.InitGameDie
-	Gods         []cmn.InitGod
+	Dice []cmn.InitGameDie
+	Gods []cmn.InitGod
 }
 
 type ConfigurePlayerMessage struct {
@@ -50,7 +50,9 @@ type DiceStateMessage struct {
 	DiceState cmn.PlayerMap[cmn.DiceState]
 }
 
-type AskToPlayGodMessage struct{}
+type AskToPlayGodMessage struct {
+	Player string
+}
 
 type TurnFinishedMessage struct {
 	Turn    int
