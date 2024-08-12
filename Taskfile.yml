@@ -60,11 +60,6 @@ tasks:
     deps: [build-client]
     cmds:
       - ./out/client --dev
-    watch: true
-    sources:
-      - 'internal/**/*.go'
-      - 'cmd/client/main.go'
-      - exclude: 'internal/server/**/*.go'
 
   run-bbtea:
     deps: [build-bbtea]
