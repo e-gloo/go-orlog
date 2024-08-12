@@ -154,7 +154,8 @@ func (cp configPlayerModel) viewChoiceInput() string {
 		}
 
 		// Render the row
-		s += fmt.Sprintf("\t%s %s\t%s: %s\n", cursor, selection, godNameStyle.Render(choice.Name), choice.Description)
+		content := fmt.Sprintf("\t%s %s\t%s: %s", cursor, selection, godNameStyle.Render(choice.Name), choice.Description)
+		s += lipgloss.NewStyle().MaxWidth(80).Render(content) + "\n"
 	}
 
 	return s
