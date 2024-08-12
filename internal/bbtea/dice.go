@@ -77,8 +77,8 @@ func (dm diceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				dm.client.KeepDice()
 			}
 		}
-	// case Cmd:
-	// 	dm.validated = false
+	case bool:
+		dm.validated = false
 	default:
 		var cmd tea.Cmd
 		dm.spinner, cmd = dm.spinner.Update(msg)
