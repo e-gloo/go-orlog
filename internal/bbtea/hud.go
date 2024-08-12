@@ -18,7 +18,7 @@ var godStyle = lipgloss.NewStyle().
 	Bold(true).
 	PaddingTop(1)
 
-func initalHudModel(client c.Client, isMe bool) hudModel {
+func initalHudModel(client c.Client, isMe bool) tea.Model {
 	return hudModel{client: client, isMe: isMe}
 }
 
@@ -26,7 +26,7 @@ func (h hudModel) Init() tea.Cmd {
 	return nil
 }
 
-func (h hudModel) Update(msg tea.Msg) (hudModel, tea.Cmd) {
+func (h hudModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	return h, cmd
 }

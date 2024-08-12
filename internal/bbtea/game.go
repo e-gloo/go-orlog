@@ -8,10 +8,10 @@ import (
 )
 
 type gameModel struct {
-	opponentHUD  hudModel
-	playerHUD    hudModel
-	opponentDice diceModel
-	playerDice   diceModel
+	opponentHUD  tea.Model
+	playerHUD    tea.Model
+	opponentDice tea.Model
+	playerDice   tea.Model
 	client       c.Client
 }
 
@@ -36,8 +36,10 @@ func (gm gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case c.Phase:
 		ph.SetPhase(msg)
 		switch msg {
+		case c.RollDice:
+			cmd = gm.playerDice.Init()
 		case c.DiceRoll:
-			gm.playerDice.validated = false
+			gm.playerDice, cmd = gm.playerDice.Update(Cmd(false))
 		}
 	default:
 		switch ph.Phase() {

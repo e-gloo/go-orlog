@@ -3,6 +3,7 @@ package bbtea
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	c "github.com/e-gloo/orlog/internal/client"
@@ -14,6 +15,7 @@ type diceModel struct {
 	cursor    int
 	nbDie     int
 	myDice    bool
+	spinner   spinner.Model
 	validated bool
 }
 
@@ -27,21 +29,25 @@ var baseDieBoxStyle = lipgloss.NewStyle().
 	MarginLeft(1).
 	Align(lipgloss.Center)
 
-func initialDiceModel(client c.Client, nbDice int, myDice bool) diceModel {
+func initialDiceModel(client c.Client, nbDice int, myDice bool) tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Points
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	return diceModel{
 		client:    client,
 		cursor:    0,
 		nbDie:     nbDice,
 		myDice:    myDice,
+		spinner:   s,
 		validated: false,
 	}
 }
 
 func (dm diceModel) Init() tea.Cmd {
-	return nil
+	return dm.spinner.Tick
 }
 
-func (dm diceModel) Update(msg tea.Msg) (diceModel, tea.Cmd) {
+func (dm diceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -71,6 +77,12 @@ func (dm diceModel) Update(msg tea.Msg) (diceModel, tea.Cmd) {
 				dm.client.KeepDice()
 			}
 		}
+	// case Cmd:
+	// 	dm.validated = false
+	default:
+		var cmd tea.Cmd
+		dm.spinner, cmd = dm.spinner.Update(msg)
+		return dm, cmd
 	}
 	return dm, cmd
 }
@@ -119,7 +131,7 @@ func (dm diceModel) View() string {
 		if dm.validated {
 			s += "Rolling dice...\n"
 		} else {
-			s += "\t> Roll dice\n"
+			s += fmt.Sprintf("\t%s > Roll dice\n", dm.spinner.View())
 		}
 	}
 
