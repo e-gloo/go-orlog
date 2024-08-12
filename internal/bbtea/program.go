@@ -4,11 +4,8 @@ package bbtea
 // component library.
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	c "github.com/e-gloo/orlog/internal/client"
-	"github.com/e-gloo/orlog/internal/pkg/logging"
 )
 
 type model struct {
@@ -94,8 +91,6 @@ func (m model) handleUpdateLobbyState(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.createOrJoin.Init()
 		case c.ConfigPlayer:
 			m.configPlayer = initialConfigPlayerModel(m.client)
-			logger := logging.GetLogger()
-			logger.Info(fmt.Sprintf("%v\n", m.client))
 			return m, m.configPlayer.Init()
 		}
 	default:
